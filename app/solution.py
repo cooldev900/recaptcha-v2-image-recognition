@@ -1,3 +1,4 @@
+from pickle import FALSE
 from typing import List, Union
 import requests
 from selenium import webdriver
@@ -8,7 +9,7 @@ from selenium.webdriver.remote.webelement import WebElement
 import time
 from loguru import logger
 from app.captcha_resolver import CaptchaResolver
-from app.settings import CAPTCHA_ENTIRE_IMAGE_FILE_PATH, CAPTCHA_SINGLE_IMAGE_FILE_PATH
+from app.settings import CAPTCHA_ENTIRE_IMAGE_FILE_PATH, CAPTCHA_SINGLE_IMAGE_FILE_PATH, USER_NAME, PASSWORD, CAPTCHA_SINGLE_IMAGE_FILE_PATH_SERIAL
 from app.utils import get_question_id_by_target_name, resize_base64_image
 
 
@@ -18,6 +19,7 @@ class Solution(object):
         self.browser.get(url)
         self.wait = WebDriverWait(self.browser, 10)
         self.captcha_resolver = CaptchaResolver()
+        self.index = 0
 
     def __del__(self):
         time.sleep(10)
@@ -87,13 +89,13 @@ class Solution(object):
         return verify_button
 
     def verify_single_captcha(self, index):
-        time.sleep(3)
+        time.sleep(10)
         elements = self.wait.until(EC.visibility_of_all_elements_located(
             (By.CSS_SELECTOR, '#rc-imageselect-target table td')))
         single_captcha_element: WebElement = elements[index]
         class_name = single_captcha_element.get_attribute('class')
         logger.debug(f'verifiying single captcha {index}, class {class_name}')
-        if 'selected' in class_name:
+        if 'rc-imageselect-tileselected' in class_name:
             logger.debug(f'no new single captcha displayed')
             return
         logger.debug('new single captcha displayed')
@@ -101,6 +103,9 @@ class Solution(object):
             'img').get_attribute('src')
         logger.debug(f'single_captcha_url {single_captcha_url}')
         with open(CAPTCHA_SINGLE_IMAGE_FILE_PATH, 'wb') as f:
+            f.write(requests.get(single_captcha_url).content)
+        with open("".join([CAPTCHA_SINGLE_IMAGE_FILE_PATH_SERIAL, "_", str(index), "_", str(self.index), ".png"]), 'wb') as f:
+            self.index += 1
             f.write(requests.get(single_captcha_url).content)
         resized_single_captcha_base64_string = resize_base64_image(
             CAPTCHA_SINGLE_IMAGE_FILE_PATH, (100, 100))
@@ -111,6 +116,7 @@ class Solution(object):
             return
         has_object = single_captcha_recognize_result.get(
             'solution', {}).get('hasObject')
+        logger.debug(f'HadObject {self.index - 1} {has_object}')
         if has_object is None:
             logger.error('count not get captcha recognized indices')
             return
@@ -119,6 +125,7 @@ class Solution(object):
             return
         if has_object:
             single_captcha_element.click()
+            time.sleep(3)
             # check for new single captcha
             self.verify_single_captcha(index)
 
@@ -140,6 +147,18 @@ class Solution(object):
         return bool(self.get_verify_error_info())
 
     def verify_entire_captcha(self):
+        # check the if verify button is displayed
+        verify_button: WebElement = self.get_verify_button()
+        counter = 0
+        while verify_button.is_displayed and verify_button.text != "VERIFY" and counter < 10:
+            logger.debug(f'button text {verify_button.text}')
+            verify_button.click()
+            time.sleep(3)
+            verify_button = self.get_verify_button()
+            if counter == 10: 
+                logger.debug(f'Infinite captcha is more than 10.')
+                return FALSE
+
         self.entire_captcha_natural_width = self.get_entire_captcha_natural_width()
         logger.debug(
             f'entire_captcha_natural_width {self.entire_captcha_natural_width}'
@@ -175,16 +194,19 @@ class Solution(object):
             return
         single_captcha_elements = self.wait.until(EC.visibility_of_all_elements_located(
             (By.CSS_SELECTOR, '#rc-imageselect-target table td')))
+        logger.debug(f'captcha recogize indices {recognized_indices}')
         for recognized_index in recognized_indices:
             single_captcha_element: WebElement = single_captcha_elements[recognized_index]
+            logger.debug(f'firt image {recognized_index} content: {single_captcha_element.get_attribute("outerHTML")}')
             single_captcha_element.click()
             # check if need verify single captcha
             self.verify_single_captcha(recognized_index)
 
         # after all captcha clicked
-        verify_button: WebElement = self.get_verify_button()
+        verify_button = self.get_verify_button()
         if verify_button.is_displayed:
             verify_button.click()
+            logger.debug('verifed button clicked')
             time.sleep(3)
 
         is_succeed = self.get_is_successful()
@@ -193,8 +215,36 @@ class Solution(object):
         else:
             verify_error_info = self.get_verify_error_info()
             logger.debug(f'verify_error_info {verify_error_info}')
-            self.verify_entire_captcha()
+            # self.verify_entire_captcha()
+        # return is_succeed
+
+    # def wait_body_loaded(self):
+    #     self.browser.implicitly_wait(20)
+    
+    # def enter_login_info(self):
+    #     self.browser.switch_to.default_content()
+    #     try:
+    #         username = self.wait.until(
+    #             EC.visibility_of_element_located((By.ID, "userid"))
+    #         )
+    #         username.send_keys(USER_NAME)
+    #     finally:
+    #         self.browser.quit()
+        # password = self.browser.find_element(By.ID, "password")
+        # password.send_keys(PASSWORD)
+        # remember_me = self.browser.find_element(By.CLASS_NAME, "Vlt-checkbox__button")
+        # remember_me.click()
+
+    def login(self):
+        login_button: WebElement = self.browser.find_element(By.CLASS_NAMEE, "login-submit")
+        login_button.click()
+        time.sleep(10)
 
     def resolve(self):
+        # self.wait_body_loaded()
+        # logger.debug(f'{self.browser.page_source}')
+        # self.browser.implicitly_wait(200)
         self.trigger_captcha()
         self.verify_entire_captcha()
+        # self.login()
+        
