@@ -29,7 +29,7 @@ class Solution(object):
 
     def get_captcha_entry_iframe(self) -> WebElement:
         self.browser.switch_to.default_content()
-        captcha_entry_iframe = self.browser.find_element_by_css_selector(
+        captcha_entry_iframe = self.browser.find_element(By.CSS_SELECTOR,
             'iframe[title="reCAPTCHA"]')
         return captcha_entry_iframe
 
@@ -39,7 +39,7 @@ class Solution(object):
 
     def get_captcha_content_iframe(self) -> WebElement:
         self.browser.switch_to.default_content()
-        captcha_content_iframe = self.browser.find_element_by_css_selector(
+        captcha_content_iframe = self.browser.find_element(By.CSS_SELECTOR,
             'iframe[src*="bframe?"]')
         return captcha_content_iframe
 
@@ -97,7 +97,7 @@ class Solution(object):
             logger.debug(f'no new single captcha displayed')
             return
         logger.debug('new single captcha displayed')
-        single_captcha_url = single_captcha_element.find_element_by_css_selector(
+        single_captcha_url = single_captcha_element.find_element(By.CSS_SELECTOR,
             'img').get_attribute('src')
         logger.debug(f'single_captcha_url {single_captcha_url}')
         with open(CAPTCHA_SINGLE_IMAGE_FILE_PATH, 'wb') as f:
@@ -149,7 +149,7 @@ class Solution(object):
             f'captcha_target_name {self.captcha_target_name}'
         )
         entire_captcha_element: WebElement = self.get_entire_captcha_element()
-        entire_captcha_url = entire_captcha_element.find_element_by_css_selector(
+        entire_captcha_url = entire_captcha_element.find_element(By.CSS_SELECTOR,
             'td img').get_attribute('src')
         logger.debug(f'entire_captcha_url {entire_captcha_url}')
         with open(CAPTCHA_ENTIRE_IMAGE_FILE_PATH, 'wb') as f:
