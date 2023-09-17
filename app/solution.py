@@ -9,8 +9,8 @@ from selenium.webdriver.remote.webelement import WebElement
 import time
 from loguru import logger
 from app.captcha_resolver import CaptchaResolver
-from app.settings import CAPTCHA_ENTIRE_IMAGE_FILE_PATH, CAPTCHA_SINGLE_IMAGE_FILE_PATH, USER_NAME, PASSWORD, CAPTCHA_SINGLE_IMAGE_FILE_PATH_SERIAL
-from app.utils import get_question_id_by_target_name, resize_base64_image
+from app.settings import CAPTCHA_ENTIRE_IMAGE_FILE_PATH, CAPTCHA_SINGLE_IMAGE_FILE_PATH, USER_NAME, PASSWORD, CAPTCHA_SINGLE_IMAGE_FILE_PATH_SERIAL, COTACT_CSV_URL
+from app.utils import get_question_id_by_target_name, resize_base64_image, read_contacts_data
 
 
 class Solution(object):
@@ -243,12 +243,13 @@ class Solution(object):
         logger.debug(f'current url is {self.browser.current_url}')
 
     def get_contacts_data(self):
-        return ''
+        return read_contacts_data(COTACT_CSV_URL)
 
     def resolve(self):
-        self.wait_body_loaded()
-        self.enter_login_info()
-        self.trigger_captcha()
-        self.verify_entire_captcha()
+        # self.wait_body_loaded()
+        # self.enter_login_info()
+        # self.trigger_captcha()
+        # self.verify_entire_captcha()
         self.login()
+        
         

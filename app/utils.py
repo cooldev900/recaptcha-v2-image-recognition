@@ -2,6 +2,7 @@ from PIL import Image
 import base64
 from loguru import logger
 from app.settings import CAPTCHA_RESIZED_IMAGE_FILE_PATH, CAPTCHA_TARGET_NAME_QUESTION_ID_MAPPING
+import csv
 
 
 def resize_base64_image(filename, size):
@@ -20,3 +21,14 @@ def get_question_id_by_target_name(target_name):
     question_id = CAPTCHA_TARGET_NAME_QUESTION_ID_MAPPING.get(target_name)
     logger.debug(f'question_id {question_id}')
     return question_id
+
+def read_contacts_data(file_path):
+    contact_list = []
+    with open(file_path, 'r') as file:
+        csv_reader = csv.reader(file)
+        for row in csv_reader:
+            contact_list.append({
+                'name': row[36] + " " + row[37],
+                'phone_number': '1' + row[38]
+            })
+    return contact_list
