@@ -9,12 +9,14 @@ from selenium.webdriver.remote.webelement import WebElement
 import time
 from loguru import logger
 from app.captcha_resolver import CaptchaResolver
-from app.settings import CAPTCHA_ENTIRE_IMAGE_FILE_PATH, CAPTCHA_SINGLE_IMAGE_FILE_PATH, USER_NAME, PASSWORD, CAPTCHA_SINGLE_IMAGE_FILE_PATH_SERIAL, COTACT_CSV_URL
+from app.settings import CAPTCHA_ENTIRE_IMAGE_FILE_PATH, CAPTCHA_SINGLE_IMAGE_FILE_PATH, USER_NAME, PASSWORD, CAPTCHA_SINGLE_IMAGE_FILE_PATH_SERIAL, COTACT_CSV_URL, MESSAGE_TEMPLATE
 from app.utils import get_question_id_by_target_name, resize_base64_image, read_contacts_data
 
 
 class Solution(object):
     def __init__(self, url):
+        options = webdriver.ChromeOptions()
+        options.add_argument("--headless")
         self.browser = webdriver.Chrome()
         self.browser.get(url)
         self.wait = WebDriverWait(self.browser, 10)
@@ -245,11 +247,81 @@ class Solution(object):
     def get_contacts_data(self):
         return read_contacts_data(COTACT_CSV_URL)
 
+    def get_message_iframe(self) -> WebElement:
+        self.browser.switch_to.default_content()
+        captcha_entry_iframe = self.browser.find_element(By.CSS_SELECTOR,
+            'iframe[src="https://messaging.internal-apps.vonage.com"]')
+        return captcha_entry_iframe
+
+    def switch_to_message_iframe(self) -> None:
+        captcha_entry_iframe: WebElement = self.get_message_iframe()
+        self.browser.switch_to.frame(captcha_entry_iframe)
+
+    def send_sms(self, phone_number, message):
+        # click new button
+        self.browser.switch_to.default_content()
+        new_button = self.browser.find_element(By.CLASS_NAME, "new-button")
+        # logger.debug(f'buttons {buttons}')
+        # new_button = buttons[1]
+        logger.debug(f'new sms button {new_button.get_attribute("outerHTML")}')
+        new_button.click()
+        time.sleep(1)
+
+        new_dropdowns = self.browser.find_elements(By.CSS_SELECTOR, ".text-ellipsis.item-option-no-border.Vlt-dropdown__link")
+        logger.debug(f'buttons {new_dropdowns}')
+        new_sms_button = new_dropdowns[1]
+        logger.debug(f'new sms button {new_sms_button.get_attribute("outerHTML")}')
+        new_sms_button.click()
+        time.sleep(3)
+        
+        # type phone number
+        phone_input: WebElement = self.wait.until(EC.presence_of_element_located(
+            (By.CSS_SELECTOR, '#filterElement')))
+        logger.debug(f'phone input {phone_input.get_attribute("outerHTML")}')
+        phone_input.send_keys(phone_number)
+        time.sleep(1)
+        
+        #click append button
+        phone_append_button: WebElement = self.wait.until(EC.presence_of_element_located(
+            (By.CLASS_NAME, 'button-append')))
+        logger.debug(f'phone_append_button {phone_append_button.get_attribute("outerHTML")}')
+        phone_append_button.click()
+        time.sleep(1)
+
+        #type message
+        self.switch_to_message_iframe()
+        message_input: WebElement = self.wait.until(EC.presence_of_element_located(
+            (By.CLASS_NAME, 'ProseMirror')))
+        logger.debug(f'phone input {message_input.get_attribute("outerHTML")}')
+        message_input.send_keys(message)
+        time.sleep(3)
+
+        #send message
+        message_send_icon: WebElement = self.wait.until(EC.presence_of_element_located(
+            (By.CLASS_NAME, 'icon-template-purple')))
+        logger.debug(f'phone input {message_send_icon.get_attribute("outerHTML")}')
+        message_send_icon.click()
+        time.sleep(5)
+
+    def convert_message(self, name, address):
+        message = MESSAGE_TEMPLATE.replace('$name', name)
+        message = message.replace('$address', address)
+        return message
+
+    def send_messages_to_contacts(self):
+        contacts_data = self.get_contacts_data()
+        for index, item in enumerate(contacts_data):
+            if index > 10: break
+            self.send_sms(item['phone_number'], item['message'])
+
     def resolve(self):
-        # self.wait_body_loaded()
-        # self.enter_login_info()
-        # self.trigger_captcha()
-        # self.verify_entire_captcha()
+        self.wait_body_loaded()
+        self.enter_login_info()
+        self.trigger_captcha()
+        self.verify_entire_captcha()
         self.login()
+        self.go_to_sms_page()
+        self.send_messages_to_contacts()
+        
         
         

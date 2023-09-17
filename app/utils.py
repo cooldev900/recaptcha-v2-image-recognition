@@ -1,7 +1,7 @@
 from PIL import Image
 import base64
 from loguru import logger
-from app.settings import CAPTCHA_RESIZED_IMAGE_FILE_PATH, CAPTCHA_TARGET_NAME_QUESTION_ID_MAPPING
+from app.settings import CAPTCHA_RESIZED_IMAGE_FILE_PATH, CAPTCHA_TARGET_NAME_QUESTION_ID_MAPPING, MESSAGE_TEMPLATE, REPLACE_POSITIONS, PHONE_NUMBER_POSITION
 import csv
 
 
@@ -26,9 +26,18 @@ def read_contacts_data(file_path):
     contact_list = []
     with open(file_path, 'r') as file:
         csv_reader = csv.reader(file)
+        index = -1
         for row in csv_reader:
+            index += 1
+            if index == 0: continue
             contact_list.append({
-                'name': row[36] + " " + row[37],
-                'phone_number': '1' + row[38]
+                'message': replace_values_into_templage(row),
+                'phone_number': '1' + row[PHONE_NUMBER_POSITION]
             })
     return contact_list
+
+def replace_values_into_templage(row):
+    message = MESSAGE_TEMPLATE
+    for value in REPLACE_POSITIONS.split(','):
+        message = message.replace(f'${value}', row[int(value)])
+    return message
