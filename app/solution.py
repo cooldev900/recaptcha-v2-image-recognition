@@ -105,12 +105,12 @@ class Solution(object):
             logger.debug('new single captcha displayed')
             single_captcha_url = single_captcha_element.find_element(By.CSS_SELECTOR,
                 'img').get_attribute('src')
-            logger.debug(f'single_captcha_url {single_captcha_url}')
+            # logger.debug(f'single_captcha_url {single_captcha_url}')
             with open(CAPTCHA_SINGLE_IMAGE_FILE_PATH, 'wb') as f:
                 f.write(requests.get(single_captcha_url).content)
-            with open("".join([CAPTCHA_SINGLE_IMAGE_FILE_PATH_SERIAL, "_", str(index), "_", str(self.index), ".png"]), 'wb') as f:
-                self.index += 1
-                f.write(requests.get(single_captcha_url).content)
+            # with open("".join([CAPTCHA_SINGLE_IMAGE_FILE_PATH_SERIAL, "_", str(index), "_", str(self.index), ".png"]), 'wb') as f:
+            #     self.index += 1
+            #     f.write(requests.get(single_captcha_url).content)
             resized_single_captcha_base64_string = resize_base64_image(
                 CAPTCHA_SINGLE_IMAGE_FILE_PATH, (100, 100))
             single_captcha_recognize_result = self.captcha_resolver.create_task(
@@ -164,9 +164,9 @@ class Solution(object):
                 return FALSE
 
         self.entire_captcha_natural_width = self.get_entire_captcha_natural_width()
-        logger.debug(
-            f'entire_captcha_natural_width {self.entire_captcha_natural_width}'
-        )
+        # logger.debug(
+        #     f'entire_captcha_natural_width {self.entire_captcha_natural_width}'
+        # )
         self.captcha_target_name = self.get_captcha_target_name()
         logger.debug(
             f'captcha_target_name {self.captcha_target_name}'
@@ -174,16 +174,16 @@ class Solution(object):
         entire_captcha_element: WebElement = self.get_entire_captcha_element()
         entire_captcha_url = entire_captcha_element.find_element(By.CSS_SELECTOR,
             'td img').get_attribute('src')
-        logger.debug(f'entire_captcha_url {entire_captcha_url}')
+        # logger.debug(f'entire_captcha_url {entire_captcha_url}')
         with open(CAPTCHA_ENTIRE_IMAGE_FILE_PATH, 'wb') as f:
             f.write(requests.get(entire_captcha_url).content)
-        logger.debug(
-            f'saved entire captcha to {CAPTCHA_ENTIRE_IMAGE_FILE_PATH}')
+        # logger.debug(
+        #     f'saved entire captcha to {CAPTCHA_ENTIRE_IMAGE_FILE_PATH}')
         resized_entire_captcha_base64_string = resize_base64_image(
             CAPTCHA_ENTIRE_IMAGE_FILE_PATH, (self.entire_captcha_natural_width,
                                              self.entire_captcha_natural_width))
-        logger.debug(
-            f'resized_entire_captcha_base64_string, {resized_entire_captcha_base64_string[0:100]}...')
+        # logger.debug(
+        #     f'resized_entire_captcha_base64_string, {resized_entire_captcha_base64_string[0:100]}...')
         entire_captcha_recognize_result = self.captcha_resolver.create_task(
             resized_entire_captcha_base64_string,
             get_question_id_by_target_name(self.captcha_target_name)
@@ -261,47 +261,47 @@ class Solution(object):
         # click new button
         self.browser.switch_to.default_content()
         new_button = self.browser.find_element(By.CLASS_NAME, "new-button")
-        # logger.debug(f'buttons {buttons}')
-        # new_button = buttons[1]
         logger.debug(f'new sms button {new_button.get_attribute("outerHTML")}')
         new_button.click()
         time.sleep(1)
+        # logger.debug(f'buttons {buttons}')
+        # new_button = buttons[1]
 
         new_dropdowns = self.browser.find_elements(By.CSS_SELECTOR, ".text-ellipsis.item-option-no-border.Vlt-dropdown__link")
-        logger.debug(f'buttons {new_dropdowns}')
         new_sms_button = new_dropdowns[1]
-        logger.debug(f'new sms button {new_sms_button.get_attribute("outerHTML")}')
         new_sms_button.click()
         time.sleep(3)
+        # logger.debug(f'buttons {new_dropdowns}')
+        # logger.debug(f'new sms button {new_sms_button.get_attribute("outerHTML")}')
         
         # type phone number
         phone_input: WebElement = self.wait.until(EC.presence_of_element_located(
             (By.CSS_SELECTOR, '#filterElement')))
-        logger.debug(f'phone input {phone_input.get_attribute("outerHTML")}')
         phone_input.send_keys(phone_number)
         time.sleep(1)
+        # logger.debug(f'phone input {phone_input.get_attribute("outerHTML")}')
         
         #click append button
         phone_append_button: WebElement = self.wait.until(EC.presence_of_element_located(
             (By.CLASS_NAME, 'button-append')))
-        logger.debug(f'phone_append_button {phone_append_button.get_attribute("outerHTML")}')
         phone_append_button.click()
         time.sleep(1)
+        # logger.debug(f'phone_append_button {phone_append_button.get_attribute("outerHTML")}')
 
         #type message
         self.switch_to_message_iframe()
         message_input: WebElement = self.wait.until(EC.presence_of_element_located(
             (By.CLASS_NAME, 'ProseMirror')))
-        logger.debug(f'phone input {message_input.get_attribute("outerHTML")}')
         message_input.send_keys(message)
         time.sleep(3)
+        # logger.debug(f'phone input {message_input.get_attribute("outerHTML")}')
 
         #send message
         message_send_icon: WebElement = self.wait.until(EC.presence_of_element_located(
             (By.CLASS_NAME, 'icon-template-purple')))
-        logger.debug(f'phone input {message_send_icon.get_attribute("outerHTML")}')
         message_send_icon.click()
         time.sleep(5)
+        # logger.debug(f'phone input {message_send_icon.get_attribute("outerHTML")}')
 
     def convert_message(self, name, address):
         message = MESSAGE_TEMPLATE.replace('$name', name)
