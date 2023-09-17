@@ -11,10 +11,12 @@ CAPTCHA_DEMO_URL = env.str('CAPTCHA_DEMO_URL')
 USER_NAME = env.str('USER_NAME')
 PASSWORD = env.str('PASSWORD')
 
-CAPTCHA_ENTIRE_IMAGE_FILE_PATH = 'captcha_entire_image.png'
-CAPTCHA_SINGLE_IMAGE_FILE_PATH = 'captcha_single_image.png'
-CAPTCHA_SINGLE_IMAGE_FILE_PATH_SERIAL = 'captcha_single_image'
-CAPTCHA_RESIZED_IMAGE_FILE_PATH = 'captcha_resized_image.png'
+CAPTCHA_ENTIRE_IMAGE_FILE_PATH = 'csv/captcha_entire_image.png'
+CAPTCHA_SINGLE_IMAGE_FILE_PATH = 'csv/captcha_single_image.png'
+CAPTCHA_SINGLE_IMAGE_FILE_PATH_SERIAL = 'csv/captcha_single_image'
+CAPTCHA_RESIZED_IMAGE_FILE_PATH = 'csv/captcha_resized_image.png'
+
+COTACT_CSV_URL = env.str('COTACT_CSV_URL')
 
 import json
 CAPTCHA_TARGET_NAME_QUESTION_ID_MAPPING = {
