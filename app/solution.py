@@ -89,45 +89,47 @@ class Solution(object):
         return verify_button
 
     def verify_single_captcha(self, index):
-        time.sleep(10)
-        elements = self.wait.until(EC.visibility_of_all_elements_located(
-            (By.CSS_SELECTOR, '#rc-imageselect-target table td')))
-        single_captcha_element: WebElement = elements[index]
-        class_name = single_captcha_element.get_attribute('class')
-        logger.debug(f'verifiying single captcha {index}, class {class_name}')
-        if 'rc-imageselect-tileselected' in class_name:
-            logger.debug(f'no new single captcha displayed')
-            return
-        logger.debug('new single captcha displayed')
-        single_captcha_url = single_captcha_element.find_element(By.CSS_SELECTOR,
-            'img').get_attribute('src')
-        logger.debug(f'single_captcha_url {single_captcha_url}')
-        with open(CAPTCHA_SINGLE_IMAGE_FILE_PATH, 'wb') as f:
-            f.write(requests.get(single_captcha_url).content)
-        with open("".join([CAPTCHA_SINGLE_IMAGE_FILE_PATH_SERIAL, "_", str(index), "_", str(self.index), ".png"]), 'wb') as f:
-            self.index += 1
-            f.write(requests.get(single_captcha_url).content)
-        resized_single_captcha_base64_string = resize_base64_image(
-            CAPTCHA_SINGLE_IMAGE_FILE_PATH, (100, 100))
-        single_captcha_recognize_result = self.captcha_resolver.create_task(
-            resized_single_captcha_base64_string, get_question_id_by_target_name(self.captcha_target_name))
-        if not single_captcha_recognize_result:
-            logger.error('count not get single captcha recognize result')
-            return
-        has_object = single_captcha_recognize_result.get(
-            'solution', {}).get('hasObject')
-        logger.debug(f'HadObject {self.index - 1} {has_object}')
-        if has_object is None:
-            logger.error('count not get captcha recognized indices')
-            return
-        if has_object is False:
-            logger.debug('no more object in this single captcha')
-            return
-        if has_object:
-            single_captcha_element.click()
-            time.sleep(3)
+        has_object = True
+        while has_object: 
+            time.sleep(10)
+            elements = self.wait.until(EC.visibility_of_all_elements_located(
+                (By.CSS_SELECTOR, '#rc-imageselect-target table td')))
+            single_captcha_element: WebElement = elements[index]
+            class_name = single_captcha_element.get_attribute('class')
+            logger.debug(f'verifiying single captcha {index}, class {class_name}')
+            if 'rc-imageselect-tileselected' in class_name:
+                logger.debug(f'no new single captcha displayed')
+                return
+            logger.debug('new single captcha displayed')
+            single_captcha_url = single_captcha_element.find_element(By.CSS_SELECTOR,
+                'img').get_attribute('src')
+            logger.debug(f'single_captcha_url {single_captcha_url}')
+            with open(CAPTCHA_SINGLE_IMAGE_FILE_PATH, 'wb') as f:
+                f.write(requests.get(single_captcha_url).content)
+            with open("".join([CAPTCHA_SINGLE_IMAGE_FILE_PATH_SERIAL, "_", str(index), "_", str(self.index), ".png"]), 'wb') as f:
+                self.index += 1
+                f.write(requests.get(single_captcha_url).content)
+            resized_single_captcha_base64_string = resize_base64_image(
+                CAPTCHA_SINGLE_IMAGE_FILE_PATH, (100, 100))
+            single_captcha_recognize_result = self.captcha_resolver.create_task(
+                resized_single_captcha_base64_string, get_question_id_by_target_name(self.captcha_target_name))
+            if not single_captcha_recognize_result:
+                logger.error('count not get single captcha recognize result')
+                return
+            has_object = single_captcha_recognize_result.get(
+                'solution', {}).get('hasObject')
+            logger.debug(f'HadObject {self.index - 1} {has_object}')
+            if has_object is None:
+                logger.error('count not get captcha recognized indices')
+                return
+            if has_object is False:
+                logger.debug('no more object in this single captcha')
+                return
+            if has_object:
+                single_captcha_element.click()
+                time.sleep(3)
             # check for new single captcha
-            self.verify_single_captcha(index)
+            # self.verify_single_captcha(index)
 
     def get_verify_error_info(self):
         self.switch_to_captcha_content_iframe()
@@ -197,7 +199,6 @@ class Solution(object):
         logger.debug(f'captcha recogize indices {recognized_indices}')
         for recognized_index in recognized_indices:
             single_captcha_element: WebElement = single_captcha_elements[recognized_index]
-            logger.debug(f'firt image {recognized_index} content: {single_captcha_element.get_attribute("outerHTML")}')
             single_captcha_element.click()
             # check if need verify single captcha
             self.verify_single_captcha(recognized_index)
@@ -218,33 +219,36 @@ class Solution(object):
             # self.verify_entire_captcha()
         # return is_succeed
 
-    # def wait_body_loaded(self):
-    #     self.browser.implicitly_wait(20)
+    def wait_body_loaded(self):
+        self.browser.implicitly_wait(20)
     
-    # def enter_login_info(self):
-    #     self.browser.switch_to.default_content()
-    #     try:
-    #         username = self.wait.until(
-    #             EC.visibility_of_element_located((By.ID, "userid"))
-    #         )
-    #         username.send_keys(USER_NAME)
-    #     finally:
-    #         self.browser.quit()
-        # password = self.browser.find_element(By.ID, "password")
-        # password.send_keys(PASSWORD)
-        # remember_me = self.browser.find_element(By.CLASS_NAME, "Vlt-checkbox__button")
-        # remember_me.click()
+    def enter_login_info(self):
+        username = self.browser.find_element(By.ID, "userid")
+        username.send_keys(USER_NAME)
+        password = self.browser.find_element(By.ID, "password")
+        password.send_keys(PASSWORD)
+        remember_me = self.browser.find_element(By.CLASS_NAME, "Vlt-checkbox__button")
+        remember_me.click()
 
     def login(self):
-        login_button: WebElement = self.browser.find_element(By.CLASS_NAMEE, "login-submit")
+        self.browser.switch_to.default_content()
+        login_button: WebElement = self.browser.find_element(By.CLASS_NAME, "login-submit")
         login_button.click()
-        time.sleep(10)
+        time.sleep(30)
+        logger.debug(f'current url is {self.browser.current_url}')
+
+    def go_to_sms_page(self):
+        self.browser.execute_script(f"window.history.pushState('', '', 'https://app.vonage.com/my-apps/messages/sms')")
+        time.sleep(30)
+        logger.debug(f'current url is {self.browser.current_url}')
+
+    def get_contacts_data(self):
+        return ''
 
     def resolve(self):
-        # self.wait_body_loaded()
-        # logger.debug(f'{self.browser.page_source}')
-        # self.browser.implicitly_wait(200)
+        self.wait_body_loaded()
+        self.enter_login_info()
         self.trigger_captcha()
         self.verify_entire_captcha()
-        # self.login()
+        self.login()
         
