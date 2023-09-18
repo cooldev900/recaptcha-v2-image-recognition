@@ -25,6 +25,8 @@ USER_NAME=<username>
 PASSWORD=<password>
 
 COTACT_CSV_URL=<contact csv file path>
+START_ROW_INDEX=<row number pointing the beginning of csv file, if not set, it will be 1 automatically due to header line>
+END_ROW_INDEX=<row number pointing the endding of csv file, if not set, the last row number will be set automatically>
 
 PHONE_NUMBER_POSITION=<column position in csv, i.e. 38>
 REPLACE_POSITIONS=<column positions which will be replaced when creating new message from message template in csv, i.e. "0,36,37">
