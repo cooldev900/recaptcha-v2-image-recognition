@@ -1,8 +1,9 @@
 from PIL import Image
 import base64
 from loguru import logger
-from app.settings import CAPTCHA_RESIZED_IMAGE_FILE_PATH, CAPTCHA_TARGET_NAME_QUESTION_ID_MAPPING, MESSAGE_TEMPLATE, REPLACE_POSITIONS, PHONE_NUMBER_POSITION
+from app.settings import CAPTCHA_RESIZED_IMAGE_FILE_PATH, CAPTCHA_TARGET_NAME_QUESTION_ID_MAPPING, MESSAGE_TEMPLATE, REPLACE_POSITIONS, PHONE_NUMBER_POSITION, MESSAGE_HISTORY_URL
 import csv
+from datetime import datetime
 
 
 def resize_base64_image(filename, size):
@@ -41,3 +42,10 @@ def replace_values_into_templage(row):
     for value in REPLACE_POSITIONS.split(','):
         message = message.replace(f'${value}', row[int(value)])
     return message
+
+def write_message_history(phone_number, message):
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    with open(f'{MESSAGE_HISTORY_URL}{current_date}.txt', 'a') as file:
+        current_time = datetime.now().strftime("%H:%M:%S")
+        file.write(f'{current_time} phone number: {phone_number}\n')
+        file.write(f'\t message: {message}\n')
