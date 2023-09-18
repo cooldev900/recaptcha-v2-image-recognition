@@ -9,9 +9,8 @@ from selenium.webdriver.remote.webelement import WebElement
 import time
 from loguru import logger
 from app.captcha_resolver import CaptchaResolver
-from app.settings import CAPTCHA_ENTIRE_IMAGE_FILE_PATH, CAPTCHA_SINGLE_IMAGE_FILE_PATH, USER_NAME, PASSWORD, CAPTCHA_SINGLE_IMAGE_FILE_PATH_SERIAL, COTACT_CSV_URL, MESSAGE_TEMPLATE
-from app.utils import get_question_id_by_target_name, resize_base64_image, read_contacts_data
-
+from app.settings import CAPTCHA_ENTIRE_IMAGE_FILE_PATH, CAPTCHA_SINGLE_IMAGE_FILE_PATH, USER_NAME, PASSWORD, CAPTCHA_SINGLE_IMAGE_FILE_PATH_SERIAL, COTACT_CSV_URL, MESSAGE_TEMPLATE, START_ROW_INDEX, END_ROW_INDEX
+from app.utils import get_question_id_by_target_name, resize_base64_image, read_contacts_data, write_message_history
 
 class Solution(object):
     def __init__(self, url):
@@ -261,11 +260,9 @@ class Solution(object):
         # click new button
         self.browser.switch_to.default_content()
         new_button = self.browser.find_element(By.CLASS_NAME, "new-button")
-        logger.debug(f'new sms button {new_button.get_attribute("outerHTML")}')
         new_button.click()
         time.sleep(1)
-        # logger.debug(f'buttons {buttons}')
-        # new_button = buttons[1]
+        # logger.debug(f'new sms button {new_button.get_attribute("outerHTML")}')
 
         new_dropdowns = self.browser.find_elements(By.CSS_SELECTOR, ".text-ellipsis.item-option-no-border.Vlt-dropdown__link")
         new_sms_button = new_dropdowns[1]
@@ -310,9 +307,31 @@ class Solution(object):
 
     def send_messages_to_contacts(self):
         contacts_data = self.get_contacts_data()
+        try:
+            start_row = int(START_ROW_INDEX)
+            print("The string can be converted to an integer.")
+        except ValueError:
+            print("The string cannot be converted to an integer.")
+            start_row = 1
+        
+        try:
+            end_row = int(END_ROW_INDEX)
+            print("The string can be converted to an integer.")
+        except ValueError:
+            print("The string cannot be converted to an integer.")
+            end_row = len(contacts_data)
+        
+        if end_row < start_row: return
+        if start_row < 1 or end_row < 1: return
+
+        print(f'start_row {start_row}')
+        print(f'end_row {end_row}')
+
         for index, item in enumerate(contacts_data):
-            if index > 10: break
-            self.send_sms(item['phone_number'], item['message'])
+            if index < start_row: continue
+            if index > end_row: break
+            self.send_sms(item['phone_number'], item['message'])            
+            write_message_history(item['phone_number'], item['message'])
 
     def resolve(self):
         self.wait_body_loaded()
