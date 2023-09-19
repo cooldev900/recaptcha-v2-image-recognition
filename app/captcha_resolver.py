@@ -23,7 +23,7 @@ class CaptchaResolver(object):
         try:
             response = requests.post(self.api_url, json=data)
             result = response.json()
-            logger.debug(f'captcha recogize result {result}')
+            # logger.debug(f'captcha recogize result {result}')
             return result
         except requests.RequestException:
             logger.exception(

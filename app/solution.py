@@ -10,15 +10,15 @@ import time
 from loguru import logger
 from app.captcha_resolver import CaptchaResolver
 from app.settings import CAPTCHA_ENTIRE_IMAGE_FILE_PATH, CAPTCHA_SINGLE_IMAGE_FILE_PATH, USER_NAME, PASSWORD, CAPTCHA_SINGLE_IMAGE_FILE_PATH_SERIAL, COTACT_CSV_URL, MESSAGE_TEMPLATE, START_ROW_INDEX, END_ROW_INDEX
-from app.utils import get_question_id_by_target_name, resize_base64_image, read_contacts_data, write_message_history
+from app.utils import get_question_id_by_target_name, resize_base64_image, read_contacts_data, write_message_history, contact_create_history, contact_create_failed_history
 
 class Solution(object):
     def __init__(self, url):
         options = webdriver.ChromeOptions()
-        options.add_argument("--headless")
-        self.browser = webdriver.Chrome()
+        options.add_argument("--window-size=1920x1080")
+        self.browser = webdriver.Chrome(options=options)
         self.browser.get(url)
-        self.wait = WebDriverWait(self.browser, 10)
+        self.wait = WebDriverWait(self.browser, 200)
         self.captcha_resolver = CaptchaResolver()
         self.index = 0
 
@@ -158,7 +158,7 @@ class Solution(object):
             verify_button.click()
             time.sleep(3)
             verify_button = self.get_verify_button()
-            if counter == 10: 
+            if counter == 20: 
                 logger.debug(f'Infinite captcha is more than 10.')
                 return FALSE
 
@@ -235,12 +235,16 @@ class Solution(object):
         self.browser.switch_to.default_content()
         login_button: WebElement = self.browser.find_element(By.CLASS_NAME, "login-submit")
         login_button.click()
+        self.wait.until(EC.url_to_be("https://app.vonage.com/whats-new"))
         time.sleep(30)
         logger.debug(f'current url is {self.browser.current_url}')
 
     def go_to_sms_page(self):
-        self.browser.execute_script(f"window.history.pushState('', '', 'https://app.vonage.com/my-apps/messages/sms')")
-        time.sleep(30)
+        self.browser.switch_to.default_content()
+        contact_dropdown = self.browser.find_element(By.CSS_SELECTOR, 'a[href="/my-apps/messages/sms"]')
+        # logger.debug(f'new contact button {contact_dropdown.get_attribute("outerHTML")}')
+        contact_dropdown.click()
+        self.wait.until(EC.url_to_be("https://app.vonage.com/my-apps/messages/sms"))
         logger.debug(f'current url is {self.browser.current_url}')
 
     def get_contacts_data(self):
@@ -312,7 +316,7 @@ class Solution(object):
             print("The string can be converted to an integer.")
         except ValueError:
             print("The string cannot be converted to an integer.")
-            start_row = 1
+            start_row = 0
         
         try:
             end_row = int(END_ROW_INDEX)
@@ -322,16 +326,163 @@ class Solution(object):
             end_row = len(contacts_data)
         
         if end_row < start_row: return
-        if start_row < 1 or end_row < 1: return
-
-        print(f'start_row {start_row}')
-        print(f'end_row {end_row}')
+        if end_row < 0: return
 
         for index, item in enumerate(contacts_data):
             if index < start_row: continue
             if index > end_row: break
             self.send_sms(item['phone_number'], item['message'])            
             write_message_history(item['phone_number'], item['message'])
+        
+        logger.debug(f'Total {end_row - start_row + 1} of messages were sent successfully')
+
+    def go_to_contact_page(self):
+        self.browser.switch_to.default_content()
+        contact_dropdown = self.browser.find_element(By.CSS_SELECTOR, 'a[href="/contacts"]')
+        # logger.debug(f'new contact button {contact_dropdown.get_attribute("outerHTML")}')
+        contact_dropdown.click()
+        self.wait.until(EC.url_to_be("https://app.vonage.com/contacts"))
+        logger.debug(f'current url is {self.browser.current_url}')
+    
+    def create_contacts(self):
+        contacts_data = self.get_contacts_data()
+        try:
+            start_row = int(START_ROW_INDEX)
+            print("The string can be converted to an integer.")
+        except ValueError:
+            print("The string cannot be converted to an integer.")
+            start_row = 0
+        
+        try:
+            end_row = int(END_ROW_INDEX)
+            print("The string can be converted to an integer.")
+        except ValueError:
+            print("The string cannot be converted to an integer.")
+            end_row = len(contacts_data)
+        
+        if end_row < start_row: return
+        if end_row < 0: return
+        total = 0
+        for index, item in enumerate(contacts_data):
+            if index < start_row: continue
+            if index > end_row: break
+            successful = self.create_contact(item)            
+            if successful: 
+                total += 1
+                contact_create_history(item)
+                logger.debug(f"The {index + 2}th row of contact was created successfully")        
+            else: 
+                contact_create_failed_history(item)
+                logger.debug(f"The {index + 2}th row of contact was created successfully")        
+        logger.debug(f'Total {total} of contacts were created successfully')
+
+    def create_contact(self, item):        
+        #click new contact button
+        new_button = self.wait.until(EC.visibility_of_element_located((
+            By.CLASS_NAME, 'new-btn'
+        )))
+        new_button.click()
+        time.sleep(1)
+
+        modal = self.wait.until(EC.visibility_of_element_located((
+            By.XPATH, '//div[@data-cy="edit-contact-modal"]'
+        )))
+
+        first_name = self.wait.until(EC.visibility_of_element_located((
+            By.XPATH, '//vwc-textfield[@data-cy="edit-contact-first-name"]'
+        )))
+        first_name = first_name.find_element(By.TAG_NAME, 'input')
+        first_name.send_keys(item['first_name'])
+
+        if len(item['last_name']) > 0:
+            last_name = self.wait.until(EC.visibility_of_element_located((
+                By.XPATH, '//vwc-textfield[@data-cy="edit-contact-last-name"]'
+            )))
+            last_name = last_name.find_element(By.TAG_NAME, 'input')
+
+            last_name.send_keys(item['last_name'])
+
+        if len(item['company']) > 0:
+            company_name = self.wait.until(EC.visibility_of_element_located((
+                By.XPATH, '//vwc-textfield[@data-cy="edit-contact-company-name"]'
+            )))
+            company_name = company_name.find_element(By.TAG_NAME, 'input')
+
+            company_name.send_keys(item['company'])
+
+        if len(item['title']) > 0:
+            title = self.wait.until(EC.visibility_of_element_located((
+                By.XPATH, '//vwc-textfield[@data-cy="edit-contact-title-name"]'
+            )))
+
+            title.send_keys(item['title'])
+
+        phone_number_block = self.wait.until(EC.visibility_of_element_located((
+            By.XPATH, '//div[@data-cy="phone-number-block"]'
+        )))
+        phone_number_collpase = phone_number_block.find_element(By.CLASS_NAME, 'block-title')
+        phone_number_collpase.click()
+
+        phone_number_block0 = self.wait.until(EC.visibility_of_element_located((
+            By.XPATH, '//div[@data-cy="edit-contact-phone-number-0"]'
+        )))
+        phone_number_input = phone_number_block0.find_element(By.TAG_NAME, 'input')
+        phone_number_input.send_keys(item['phone_number'])
+
+        if len(item['email']) > 0:    
+            email_address_block = self.wait.until(EC.visibility_of_element_located((
+                By.XPATH, '//div[@data-cy="email-block"]'
+            )))
+            email_address_collpase = email_address_block.find_element(By.CLASS_NAME, 'block-title')
+
+            email_address_collpase.click()
+
+            email_address_block0 = self.wait.until(EC.visibility_of_element_located((
+                By.XPATH, '//div[@data-cy="email-block"]/div[2]'
+            )))
+            email_address_input = email_address_block0.find_element(By.TAG_NAME, 'input')
+
+            email_address_input.send_keys(item['email'])
+
+        street_address_block = self.wait.until(EC.visibility_of_element_located((
+            By.XPATH, '//div[@data-cy="address-block"]'
+        )))
+        street_address_collpase = street_address_block.find_element(By.CLASS_NAME, 'block-title')
+        street_address_collpase.click()
+
+        street_address_block0 = self.wait.until(EC.visibility_of_element_located((
+            By.XPATH, '//div[@data-cy="address-block"]/div[2]/div[1]/div[2]/div[2]'
+        )))
+
+        if len(item['street']) > 0:
+            city_input = street_address_block0.find_element(By.XPATH, '//div[@data-cy="edit-contact-address"]/div[1]/div[1]/input[1]')
+            city_input.send_keys(item['street'])
+        if len(item['city']) > 0:
+            city_input = street_address_block0.find_element(By.XPATH, '//div[@data-cy="edit-contact-city"]/div[1]/div[1]/input[1]')
+            city_input.send_keys(item['city'])
+
+        if len(item['state']) > 0:
+            state_input = street_address_block0.find_element(By.XPATH, '//div[@data-cy="edit-contact-state"]/div[1]/div[1]/input[1]')
+            state_input.send_keys(item['state'])
+
+        if len(item['zip_code']) > 0:     
+            zip_input = street_address_block0.find_element(By.XPATH, '//div[@data-cy="edit-contact-zipCode"]/div[1]/div[1]/input[1]')
+            zip_input.send_keys(item['zip_code'])
+
+        if len(item['country']):
+            country_input = street_address_block0.find_element(By.XPATH, '//div[@data-cy="edit-contact-country"]/div[1]/div[1]/input[1]')
+            country_input.send_keys(item['country'])
+
+        create_button = self.wait.until(EC.element_to_be_clickable((
+            By.XPATH, '//div[@class="save-cancel"]/button[2]'
+        )))
+        if create_button.is_enabled():
+            create_button.click()
+            time.sleep(5)
+            return True
+        else:
+            return False
+
 
     def resolve(self):
         self.wait_body_loaded()
@@ -339,6 +490,8 @@ class Solution(object):
         self.trigger_captcha()
         self.verify_entire_captcha()
         self.login()
+        self.go_to_contact_page()
+        self.create_contacts()
         self.go_to_sms_page()
         self.send_messages_to_contacts()
         
