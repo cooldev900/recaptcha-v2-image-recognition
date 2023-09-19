@@ -29,20 +29,19 @@ START_ROW_INDEX=<row number pointing the beginning of csv file, if not set, it w
 END_ROW_INDEX=<row number pointing the endding of csv file, if not set, the last row number will be set automatically>
 
 //We assume that row and column start from 0.
-FIRST_NAME_POSITION=<first name column position in csv, i.e. 38>
-LAST_NAME_POSITION=<last name column position in csv, i.e. 38>
-COMPANY_NAME_POSITION=<company column position in csv, i.e. 38>
-TITLE_POSITION=<title column position in csv, i.e. 38>
-EMAIL_ADDRESS_POSITION=<email address column position in csv, i.e. 38>
-STREET_ADDRESS_POSITION=<street address column position in csv, i.e. 38>
-CITY_POSITION=<city position column position in csv, i.e. 38>
-STATE_POSITION=<state column position in csv, i.e. 38>
-ZIP_CODE_POSITION=<zip code column position in csv, i.e. 38>
-COUNTRY_POSITION=<country column position in csv, i.e. 38>
-PHONE_NUMBER_POSITION=<phone number column position in csv, i.e. 38>
-REPLACE_POSITIONS=<column positions which will be replaced when creating new message from message template in csv, i.e. "0,36,37">
+FIRST_NAME=<first name column name in csv>
+LAST_NAME=<last name column name in csv>
+COMPANY_NAME=<company column name in csv>
+TITLE=<title column name in csv>
+EMAIL_ADDRESS=<email address column name in csv>
+STREET_ADDRESS=<street address column name in csv>
+CITY=<city name column name in csv>
+STATE=<state column name in csv>
+ZIP_CODE=<zip code column name in csv>
+COUNTRY=<country column name in csv>
+PHONE_NUMBER=<phone number column name in csv>
 
-MESSAGE_TEMPLATE="Hello $36 $37,\n My name is Connor.\n I'm looking to acquire a few properties in the area.\n If you are the owner of $0, would you consider an offer?"
+MESSAGE_TEMPLATE="Hello ${FIRST_NAME} ${LAST_NAME},\n My name is Connor.\n I'm looking to acquire a few properties in the area.\n If you are the owner of ${STREET_ADDRESS}, would you consider an offer?"
 ```
 
 Next, you need to install packages:
