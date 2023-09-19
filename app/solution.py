@@ -375,7 +375,7 @@ class Solution(object):
     def create_contact(self, item):        
         #click new contact button
         new_button = self.wait.until(EC.element_to_be_clickable((
-            By.CLASS_NAME, 'new-btn'
+            By.XPATH, '//button[@data-cy="title-button"]'
         )))
         new_button.click()
         time.sleep(1)
