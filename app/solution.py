@@ -9,7 +9,7 @@ from selenium.webdriver.remote.webelement import WebElement
 import time
 from loguru import logger
 from app.captcha_resolver import CaptchaResolver
-from app.settings import CAPTCHA_ENTIRE_IMAGE_FILE_PATH, CAPTCHA_SINGLE_IMAGE_FILE_PATH, USER_NAME, PASSWORD, CAPTCHA_SINGLE_IMAGE_FILE_PATH_SERIAL, COTACT_CSV_URL, MESSAGE_TEMPLATE, START_ROW_INDEX, END_ROW_INDEX
+from app.settings import CAPTCHA_ENTIRE_IMAGE_FILE_PATH, CAPTCHA_SINGLE_IMAGE_FILE_PATH, USER_NAME, PASSWORD, COTACT_CSV_URL, MESSAGE_TEMPLATE, START_ROW_INDEX, END_ROW_INDEX
 from app.utils import get_question_id_by_target_name, resize_base64_image, read_contacts_data, write_message_history, contact_create_history, contact_create_failed_history
 
 class Solution(object):
@@ -70,7 +70,7 @@ class Solution(object):
 
     def trigger_captcha(self) -> None:
         self.switch_to_captcha_entry_iframe()
-        captcha_entry = self.wait.until(EC.presence_of_element_located(
+        captcha_entry = self.wait.until(EC.visibility_of_element_located(
             (By.ID, 'recaptcha-anchor')))
         captcha_entry.click()
         time.sleep(2)
@@ -80,12 +80,12 @@ class Solution(object):
             logger.debug('trigged captcha successfully')
 
     def get_captcha_target_name(self) -> WebElement:
-        captcha_target_name_element: WebElement = self.wait.until(EC.presence_of_element_located(
+        captcha_target_name_element: WebElement = self.wait.until(EC.visibility_of_element_located(
             (By.CSS_SELECTOR, '.rc-imageselect-desc-wrapper strong')))
         return captcha_target_name_element.text
 
     def get_verify_button(self) -> WebElement:
-        verify_button = self.wait.until(EC.presence_of_element_located(
+        verify_button = self.wait.until(EC.visibility_of_element_located(
             (By.CSS_SELECTOR, '#recaptcha-verify-button')))
         return verify_button
 
@@ -276,14 +276,14 @@ class Solution(object):
         # logger.debug(f'new sms button {new_sms_button.get_attribute("outerHTML")}')
         
         # type phone number
-        phone_input: WebElement = self.wait.until(EC.presence_of_element_located(
+        phone_input: WebElement = self.wait.until(EC.visibility_of_element_located(
             (By.CSS_SELECTOR, '#filterElement')))
         phone_input.send_keys(phone_number)
         time.sleep(1)
         # logger.debug(f'phone input {phone_input.get_attribute("outerHTML")}')
         
         #click append button
-        phone_append_button: WebElement = self.wait.until(EC.presence_of_element_located(
+        phone_append_button: WebElement = self.wait.until(EC.element_to_be_clickable(
             (By.CLASS_NAME, 'button-append')))
         phone_append_button.click()
         time.sleep(1)
@@ -291,14 +291,14 @@ class Solution(object):
 
         #type message
         self.switch_to_message_iframe()
-        message_input: WebElement = self.wait.until(EC.presence_of_element_located(
+        message_input: WebElement = self.wait.until(EC.visibility_of_element_located(
             (By.CLASS_NAME, 'ProseMirror')))
         message_input.send_keys(message)
         time.sleep(3)
         # logger.debug(f'phone input {message_input.get_attribute("outerHTML")}')
 
         #send message
-        message_send_icon: WebElement = self.wait.until(EC.presence_of_element_located(
+        message_send_icon: WebElement = self.wait.until(EC.visibility_of_element_located(
             (By.CLASS_NAME, 'icon-template-purple')))
         message_send_icon.click()
         time.sleep(5)
@@ -313,14 +313,12 @@ class Solution(object):
         contacts_data = self.get_contacts_data()
         try:
             start_row = int(START_ROW_INDEX)
-            print("The string can be converted to an integer.")
         except ValueError:
             print("The string cannot be converted to an integer.")
             start_row = 0
         
         try:
             end_row = int(END_ROW_INDEX)
-            print("The string can be converted to an integer.")
         except ValueError:
             print("The string cannot be converted to an integer.")
             end_row = len(contacts_data)
@@ -348,14 +346,12 @@ class Solution(object):
         contacts_data = self.get_contacts_data()
         try:
             start_row = int(START_ROW_INDEX)
-            print("The string can be converted to an integer.")
         except ValueError:
             print("The string cannot be converted to an integer.")
             start_row = 0
         
         try:
             end_row = int(END_ROW_INDEX)
-            print("The string can be converted to an integer.")
         except ValueError:
             print("The string cannot be converted to an integer.")
             end_row = len(contacts_data)
@@ -384,7 +380,7 @@ class Solution(object):
         new_button.click()
         time.sleep(1)
 
-        modal = self.wait.until(EC.visibility_of_element_located((
+        self.wait.until(EC.visibility_of_element_located((
             By.XPATH, '//div[@data-cy="edit-contact-modal"]'
         )))
 
@@ -476,7 +472,6 @@ class Solution(object):
         create_button = self.wait.until(EC.element_to_be_clickable((
             By.XPATH, '//div[@class="save-cancel"]/button[2]'
         )))
-        print(create_button.is_enabled)
         if "Vlt-btn--disabled" in create_button.get_attribute('class'):
             return False
         else:
@@ -495,6 +490,5 @@ class Solution(object):
         self.create_contacts()
         self.go_to_sms_page()
         self.send_messages_to_contacts()
-        
         
         
