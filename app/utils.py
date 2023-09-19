@@ -58,16 +58,16 @@ def read_contacts_data(file_path):
             contact_list.append({
                 'message': replace_values_into_templage(row),
                 'phone_number': '1' + row[PHONE_NUMBER_POSITION],
-                'first_name': row[position_info['first_name']] if position_info['first_name'] else "unknown",
-                'last_name': row[position_info['last_name']] if position_info['last_name'] else "unknown",
-                'company': row[position_info['company']] if position_info['company'] else "",
-                'title': row[position_info['title']] if position_info['title'] else "",
-                'email': row[position_info['email']] if position_info['email'] else "",
-                'street': row[position_info['street']] if position_info['street'] else "",
-                'city': row[position_info['city']] if position_info['city'] else "",
-                'state': row[position_info['state']] if position_info['state'] else "",
-                'zip_code': row[position_info['zip_code']] if position_info['zip_code'] else "",
-                'country': row[position_info['country']] if position_info['country'] else "",
+                'first_name': row[position_info['first_name']] if position_info['first_name'] != -1 else "unknown",
+                'last_name': row[position_info['last_name']] if position_info['last_name']  != -1 else "unknown",
+                'company': row[position_info['company']] if position_info['company'] != -1 else "",
+                'title': row[position_info['title']] if position_info['title'] != -1 else "",
+                'email': row[position_info['email']] if position_info['email'] != -1 else "",
+                'street': row[position_info['street']] if position_info['street'] != -1 else "",
+                'city': row[position_info['city']] if position_info['city'] != -1 else "",
+                'state': row[position_info['state']] if position_info['state'] != -1 else "",
+                'zip_code': row[position_info['zip_code']] if position_info['zip_code'] != -1 else "",
+                'country': row[position_info['country']] if position_info['country'] != -1 else "",
             })
     return contact_list
 

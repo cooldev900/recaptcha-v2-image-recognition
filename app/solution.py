@@ -476,12 +476,13 @@ class Solution(object):
         create_button = self.wait.until(EC.element_to_be_clickable((
             By.XPATH, '//div[@class="save-cancel"]/button[2]'
         )))
-        if create_button.is_enabled():
+        print(create_button.is_enabled)
+        if "Vlt-btn--disabled" in create_button.get_attribute('class'):
+            return False
+        else:
             create_button.click()
             time.sleep(5)
             return True
-        else:
-            return False
 
 
     def resolve(self):
