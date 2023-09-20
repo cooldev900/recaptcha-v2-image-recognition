@@ -60,16 +60,16 @@ def read_contacts_data(file_path):
             contact_list.append({
                 'message': replace_values_into_templage(row),
                 'phone_number': '1' + row.get(PHONE_NUMBER, "").strip(),
-                'first_name': row.get(FIRST_NAME, "").strip() if len(FIRST_NAME) else "unknown",
-                'last_name': row.get(LAST_NAME, "").strip() if len(LAST_NAME) else "unknown",
-                'company': row.get(COMPANY_NAME, "").strip() if len(COMPANY_NAME) else "unknown",
-                'title': row.get(TITLE, "").strip() if len(TITLE) else "unknown",
-                'email': row.get(EMAIL_ADDRESS, "").strip() if len(FIRST_NAME) else "unknown",
-                'street': row.get(STREET_ADDRESS, "").strip() if len(STREET_ADDRESS) else "unknown",
-                'city': row.get(CITY, "").strip() if len(CITY) else "unknown",
-                'state': row.get(STATE, "").strip() if len(STATE) else "unknown",
-                'zip_code': row.get(ZIP_CODE, "").strip() if len(ZIP_CODE) else "unknown",
-                'country': row.get(COUNTRY, "").strip() if len(COUNTRY) else "unknown",
+                'first_name': row.get(FIRST_NAME, "").strip() if len(FIRST_NAME) else "Unknown",
+                'last_name': row.get(LAST_NAME, "").strip() if len(LAST_NAME) else "",
+                'company': row.get(COMPANY_NAME, "").strip() if len(COMPANY_NAME) else "",
+                'title': row.get(TITLE, "").strip() if len(TITLE) else "",
+                'email': row.get(EMAIL_ADDRESS, "").strip() if len(FIRST_NAME) else "",
+                'street': row.get(STREET_ADDRESS, "").strip() if len(STREET_ADDRESS) else "",
+                'city': row.get(CITY, "").strip() if len(CITY) else "",
+                'state': row.get(STATE, "").strip() if len(STATE) else "",
+                'zip_code': row.get(ZIP_CODE, "").strip() if len(ZIP_CODE) else "",
+                'country': row.get(COUNTRY, "").strip() if len(COUNTRY) else "",
             })
 
             # Save the progress
