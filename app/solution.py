@@ -233,7 +233,8 @@ class Solution(object):
 
     def login(self):
         self.browser.switch_to.default_content()
-        login_button: WebElement = self.browser.find_element(By.CLASS_NAME, "login-submit")
+        login_button: WebElement = self.wait.until(EC.element_to_be_clickable(
+            (By.XPATH, '//vwc-button[@data-aid="login-button"]')))
         login_button.click()
         self.wait.until(EC.url_to_be("https://app.vonage.com/whats-new"))
         time.sleep(30)
