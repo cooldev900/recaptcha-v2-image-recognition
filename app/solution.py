@@ -224,11 +224,14 @@ class Solution(object):
         self.browser.implicitly_wait(20)
     
     def enter_login_info(self):
-        username = self.browser.find_element(By.ID, "userid")
+        username = self.wait.until(EC.visibility_of_element_located(
+            (By.ID, "userid")))
         username.send_keys(USER_NAME)
-        password = self.browser.find_element(By.ID, "password")
+        password = self.wait.until(EC.visibility_of_element_located(
+            (By.ID, "password")))
         password.send_keys(PASSWORD)
-        remember_me = self.browser.find_element(By.CLASS_NAME, "Vlt-checkbox__button")
+        remember_me = self.wait.until(EC.element_to_be_clickable(
+            (By.CLASS_NAME, "Vlt-checkbox__button")))
         remember_me.click()
 
     def login(self):
@@ -337,7 +340,9 @@ class Solution(object):
 
     def go_to_contact_page(self):
         self.browser.switch_to.default_content()
-        contact_dropdown = self.browser.find_element(By.CSS_SELECTOR, 'a[href="/contacts"]')
+        contact_dropdown = self.wait.until(EC.element_to_be_clickable((
+            By.CSS_SELECTOR, 'a[href="/contacts"]'
+        )))
         # logger.debug(f'new contact button {contact_dropdown.get_attribute("outerHTML")}')
         contact_dropdown.click()
         self.wait.until(EC.url_to_be("https://app.vonage.com/contacts"))
@@ -379,8 +384,8 @@ class Solution(object):
         new_button_container = self.wait.until(EC.visibility_of_element_located((
             By.XPATH, '//div[@id="RouterView"]/div[1]/div[1]'
         )))
-        new_button = new_button_container.find_element(By.XPATH, '//button[@data-cy="title-button"]')
         time.sleep(3)
+        new_button = new_button_container.find_element(By.XPATH, '//button[@data-cy="title-button"]')
         new_button.click()
 
         self.wait.until(EC.visibility_of_element_located((
@@ -433,14 +438,12 @@ class Solution(object):
                 By.XPATH, '//div[@data-cy="email-block"]'
             )))
             email_address_collpase = email_address_block.find_element(By.CLASS_NAME, 'block-title')
-
             email_address_collpase.click()
 
             email_address_block0 = self.wait.until(EC.visibility_of_element_located((
                 By.XPATH, '//div[@data-cy="email-block"]/div[2]'
             )))
             email_address_input = email_address_block0.find_element(By.TAG_NAME, 'input')
-
             email_address_input.send_keys(item['email'])
 
         street_address_block = self.wait.until(EC.visibility_of_element_located((
