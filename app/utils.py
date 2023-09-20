@@ -51,9 +51,18 @@ def convert_string_into_int(value):
 def read_contacts_data(file_path):
     contact_list = []
     last_processed = get_last_processed()
-    with open(file_path, 'r') as file:
-        csv_reader = csv.DictReader(file)
-        for index, row in enumerate(csv_reader, start=1):
+    with open(file_path, 'r', encoding='utf-8-sig') as file:
+        reader = csv.reader(file)
+
+        for index, row in enumerate(reader):
+            if (index == 0):
+                print(row)
+            else:
+                break
+
+    with open(file_path, 'r', encoding='utf-8-sig') as file:
+        csv_readr = csv.DictReader(file)
+        for index, row in enumerate(csv_readr, start=1):
             # Resume from where we left off
             if index <= last_processed:
                 continue
@@ -87,7 +96,8 @@ def replace_values_into_templage(row):
     columns = [PHONE_NUMBER, MESSAGE_HISTORY_URL, FIRST_NAME, LAST_NAME, COMPANY_NAME,
                TITLE, EMAIL_ADDRESS, STREET_ADDRESS, CITY, STATE, ZIP_CODE, COUNTRY]
     for value in columns:
-        if len(value): message = message.replace(value, row.get(value, "").strip())
+        if len(value):
+            message = message.replace(value, row.get(value, "").strip())
     return message
 
 

@@ -380,12 +380,13 @@ class Solution(object):
 
     def create_contact(self, item):        
         #click new contact button
+        # new_button_container = self.wait.until(EC.visibility_of_element_located((
+        #     By.XPATH, '//div[@id="RouterView"]/div[1]/div[1]'
+        # )))
         time.sleep(5)
-        new_button_container = self.wait.until(EC.visibility_of_element_located((
-            By.XPATH, '//div[@id="RouterView"]/div[1]/div[1]'
+        new_button = self.wait.until(EC.element_to_be_clickable((
+            By.XPATH, '//button[@data-cy="title-button"]'
         )))
-        time.sleep(3)
-        new_button = new_button_container.find_element(By.XPATH, '//button[@data-cy="title-button"]')
         new_button.click()
 
         self.wait.until(EC.visibility_of_element_located((
@@ -479,6 +480,10 @@ class Solution(object):
             By.XPATH, '//div[@class="save-cancel"]/button[2]'
         )))
         if "Vlt-btn--disabled" in create_button.get_attribute('class'):
+            close_button = self.wait.until(EC.element_to_be_clickable((
+                By.XPATH, '//div[@class="save-cancel"]/button[1]'
+            )))
+            close_button.click()
             return False
         else:
             create_button.click()
@@ -496,5 +501,6 @@ class Solution(object):
         self.create_contacts()
         self.go_to_sms_page()
         self.send_messages_to_contacts()
+        self.get_contacts_data()
         
         
