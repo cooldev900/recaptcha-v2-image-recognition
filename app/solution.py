@@ -421,10 +421,9 @@ class Solution(object):
 
             title.send_keys(item['title'])
 
-        phone_number_block = self.wait.until(EC.visibility_of_element_located((
-            By.XPATH, '//div[@data-cy="phone-number-block"]'
+        phone_number_collpase = self.wait.until(EC.element_to_be_clickable((
+            By.XPATH, '//div[@data-cy="phone-number-block"]/div[1]'
         )))
-        phone_number_collpase = phone_number_block.find_element(By.CLASS_NAME, 'block-title')
         phone_number_collpase.click()
 
         phone_number_block0 = self.wait.until(EC.visibility_of_element_located((
@@ -434,10 +433,9 @@ class Solution(object):
         phone_number_input.send_keys(item['phone_number'])
 
         if len(item['email']) > 0:    
-            email_address_block = self.wait.until(EC.visibility_of_element_located((
-                By.XPATH, '//div[@data-cy="email-block"]'
+            email_address_collpase = self.wait.until(EC.element_to_be_clickable((
+                By.XPATH, '//div[@data-cy="email-block"]/div[1]'
             )))
-            email_address_collpase = email_address_block.find_element(By.CLASS_NAME, 'block-title')
             email_address_collpase.click()
 
             email_address_block0 = self.wait.until(EC.visibility_of_element_located((
@@ -446,10 +444,12 @@ class Solution(object):
             email_address_input = email_address_block0.find_element(By.TAG_NAME, 'input')
             email_address_input.send_keys(item['email'])
 
-        street_address_block = self.wait.until(EC.visibility_of_element_located((
-            By.XPATH, '//div[@data-cy="address-block"]'
+        # street_address_block = self.wait.until(EC.visibility_of_element_located((
+        #     By.XPATH, '//div[@data-cy="address-block"]'
+        # )))
+        street_address_collpase = self.wait.until(EC.element_to_be_clickable((
+            By.XPATH, '//div[@data-cy="address-block"]/div[1]'
         )))
-        street_address_collpase = street_address_block.find_element(By.CLASS_NAME, 'block-title')
         street_address_collpase.click()
 
         street_address_block0 = self.wait.until(EC.visibility_of_element_located((
