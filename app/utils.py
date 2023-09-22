@@ -56,16 +56,16 @@ def read_contacts_data(file_path, columns, begin_row, end_row):
 
         for index, row in enumerate(reader):
             if (index == 0):
-                print(row)
+                logger.debug(f'{row}')
             else:
                 break
-
+    # logger.debug(f'begin row {type(begin_row)} {begin_row} end_row {type(end_row)} {end_row} last_processed {last_processed}')
     with open(file_path, 'r', encoding='utf-8-sig') as file:
         csv_readr = csv.DictReader(file)
-        for index, row in enumerate(csv_readr, start=1):
+        for index, row in enumerate(csv_readr, start=2):
             # Resume from where we left off
-            if begin_row > 0 and begin_row > index: continue
-            if end_row != -1 and end_row > index: break
+            if begin_row > 1 and index < begin_row: continue
+            if end_row != -1 and index > end_row: break
             if index <= last_processed:
                 continue
             contact_list.append({

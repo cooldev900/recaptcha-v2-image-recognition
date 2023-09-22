@@ -12,6 +12,7 @@ from app.captcha_resolver import CaptchaResolver
 from app.settings import CAPTCHA_ENTIRE_IMAGE_FILE_PATH, CAPTCHA_SINGLE_IMAGE_FILE_PATH, USER_NAME, PASSWORD, COTACT_CSV_URL, MESSAGE_TEMPLATE, START_ROW_INDEX, END_ROW_INDEX
 from app.utils import get_question_id_by_target_name, resize_base64_image, read_contacts_data, write_message_history, contact_create_history, contact_create_failed_history
 
+
 class Solution(object):
     def __init__(self, url, file_path, columns, begin_row, end_row):
         self.file_path = file_path
@@ -37,7 +38,7 @@ class Solution(object):
     def get_captcha_entry_iframe(self) -> WebElement:
         self.browser.switch_to.default_content()
         captcha_entry_iframe = self.browser.find_element(By.CSS_SELECTOR,
-            'iframe[title="reCAPTCHA"]')
+                                                         'iframe[title="reCAPTCHA"]')
         return captcha_entry_iframe
 
     def switch_to_captcha_entry_iframe(self) -> None:
@@ -47,7 +48,7 @@ class Solution(object):
     def get_captcha_content_iframe(self) -> WebElement:
         self.browser.switch_to.default_content()
         captcha_content_iframe = self.browser.find_element(By.CSS_SELECTOR,
-            'iframe[src*="bframe?"]')
+                                                           'iframe[src*="bframe?"]')
         return captcha_content_iframe
 
     def switch_to_captcha_content_iframe(self) -> None:
@@ -95,19 +96,20 @@ class Solution(object):
 
     def verify_single_captcha(self, index):
         has_object = True
-        while has_object: 
+        while has_object:
             time.sleep(10)
             elements = self.wait.until(EC.visibility_of_all_elements_located(
                 (By.CSS_SELECTOR, '#rc-imageselect-target table td')))
             single_captcha_element: WebElement = elements[index]
             class_name = single_captcha_element.get_attribute('class')
-            logger.debug(f'verifiying single captcha {index}, class {class_name}')
+            logger.debug(
+                f'verifiying single captcha {index}, class {class_name}')
             if 'rc-imageselect-tileselected' in class_name:
                 logger.debug(f'no new single captcha displayed')
                 return
             logger.debug('new single captcha displayed')
             single_captcha_url = single_captcha_element.find_element(By.CSS_SELECTOR,
-                'img').get_attribute('src')
+                                                                     'img').get_attribute('src')
             # logger.debug(f'single_captcha_url {single_captcha_url}')
             with open(CAPTCHA_SINGLE_IMAGE_FILE_PATH, 'wb') as f:
                 f.write(requests.get(single_captcha_url).content)
@@ -162,7 +164,7 @@ class Solution(object):
             verify_button.click()
             time.sleep(3)
             verify_button = self.get_verify_button()
-            if counter == 10: 
+            if counter == 10:
                 logger.debug(f'Infinite captcha is more than 10.')
                 return FALSE
 
@@ -176,7 +178,7 @@ class Solution(object):
         )
         entire_captcha_element: WebElement = self.get_entire_captcha_element()
         entire_captcha_url = entire_captcha_element.find_element(By.CSS_SELECTOR,
-            'td img').get_attribute('src')
+                                                                 'td img').get_attribute('src')
         # logger.debug(f'entire_captcha_url {entire_captcha_url}')
         with open(CAPTCHA_ENTIRE_IMAGE_FILE_PATH, 'wb') as f:
             f.write(requests.get(entire_captcha_url).content)
@@ -226,7 +228,7 @@ class Solution(object):
 
     def wait_body_loaded(self):
         self.browser.implicitly_wait(20)
-    
+
     def enter_login_info(self):
         username = self.wait.until(EC.visibility_of_element_located(
             (By.ID, "userid")))
@@ -249,10 +251,12 @@ class Solution(object):
 
     def go_to_sms_page(self):
         self.browser.switch_to.default_content()
-        contact_dropdown = self.browser.find_element(By.CSS_SELECTOR, 'a[href="/my-apps/messages/sms"]')
+        contact_dropdown = self.browser.find_element(
+            By.CSS_SELECTOR, 'a[href="/my-apps/messages/sms"]')
         # logger.debug(f'new contact button {contact_dropdown.get_attribute("outerHTML")}')
         contact_dropdown.click()
-        self.wait.until(EC.url_to_be("https://app.vonage.com/my-apps/messages/sms"))
+        self.wait.until(EC.url_to_be(
+            "https://app.vonage.com/my-apps/messages/sms"))
         logger.debug(f'current url is {self.browser.current_url}')
 
     def get_contacts_data(self):
@@ -261,7 +265,7 @@ class Solution(object):
     def get_message_iframe(self) -> WebElement:
         self.browser.switch_to.default_content()
         captcha_entry_iframe = self.browser.find_element(By.CSS_SELECTOR,
-            'iframe[src="https://messaging.internal-apps.vonage.com"]')
+                                                         'iframe[src="https://messaging.internal-apps.vonage.com"]')
         return captcha_entry_iframe
 
     def switch_to_message_iframe(self) -> None:
@@ -276,28 +280,29 @@ class Solution(object):
         time.sleep(1)
         # logger.debug(f'new sms button {new_button.get_attribute("outerHTML")}')
 
-        new_dropdowns = self.browser.find_elements(By.CSS_SELECTOR, ".text-ellipsis.item-option-no-border.Vlt-dropdown__link")
+        new_dropdowns = self.browser.find_elements(
+            By.CSS_SELECTOR, ".text-ellipsis.item-option-no-border.Vlt-dropdown__link")
         new_sms_button = new_dropdowns[1]
         new_sms_button.click()
         time.sleep(3)
         # logger.debug(f'buttons {new_dropdowns}')
         # logger.debug(f'new sms button {new_sms_button.get_attribute("outerHTML")}')
-        
+
         # type phone number
         phone_input: WebElement = self.wait.until(EC.visibility_of_element_located(
             (By.CSS_SELECTOR, '#filterElement')))
         phone_input.send_keys(phone_number)
         time.sleep(1)
         # logger.debug(f'phone input {phone_input.get_attribute("outerHTML")}')
-        
-        #click append button
+
+        # click append button
         phone_append_button: WebElement = self.wait.until(EC.element_to_be_clickable(
             (By.CLASS_NAME, 'button-append')))
         phone_append_button.click()
         time.sleep(1)
         # logger.debug(f'phone_append_button {phone_append_button.get_attribute("outerHTML")}')
 
-        #type message
+        # type message
         self.switch_to_message_iframe()
         message_input: WebElement = self.wait.until(EC.visibility_of_element_located(
             (By.CLASS_NAME, 'ProseMirror')))
@@ -305,7 +310,7 @@ class Solution(object):
         time.sleep(3)
         # logger.debug(f'phone input {message_input.get_attribute("outerHTML")}')
 
-        #send message
+        # send message
         message_send_icon: WebElement = self.wait.until(EC.visibility_of_element_located(
             (By.CLASS_NAME, 'icon-template-purple')))
         message_send_icon.click()
@@ -319,19 +324,14 @@ class Solution(object):
 
     def send_messages_to_contacts(self):
         contacts_data = self.get_contacts_data()
-        start_row = 1 if self.begin_row < 0 else self.begin_row
-        end_row = len(contacts_data) if self.end_row == -1 else self.end_row
-        
-        if end_row < start_row: return
-        if end_row < 0: return
-
+        total = 0
         for index, item in enumerate(contacts_data, start=1):
-            if index < start_row: continue
-            if index > end_row: break
-            self.send_sms(item['phone_number'], item['message'])            
+            self.send_sms(item['phone_number'], item['message'])
             write_message_history(item['phone_number'], item['message'])
-        
-        logger.debug(f'Total {end_row - start_row + 1} of messages were sent successfully')
+            total += 1
+
+        self.browser.quit()
+        logger.debug(f'Total {total} of messages were sent successfully')
 
     def go_to_contact_page(self):
         self.browser.switch_to.default_content()
@@ -342,23 +342,25 @@ class Solution(object):
         contact_dropdown.click()
         self.wait.until(EC.url_to_be("https://app.vonage.com/contacts"))
         logger.debug(f'current url is {self.browser.current_url}')
-    
+
     def create_contacts(self):
         contacts_data = self.get_contacts_data()
-        
+        total = 0
         for index, item in enumerate(contacts_data, start=1):
-            successful = self.create_contact(item)            
-            if successful: 
+            successful = self.create_contact(item)
+            if successful:
                 total += 1
                 contact_create_history(item)
-                logger.debug(f"The {index + 2}th row of contact was created successfully")        
-            else: 
+                logger.debug(
+                    f"The {index}th row of contact was created successfully")
+            else:
                 contact_create_failed_history(item)
-                logger.debug(f"The {index + 2}th row of contact was created successfully")        
+                logger.debug(
+                    f"The {index}th row of contact was created successfully")
         logger.debug(f'Total {total} of contacts were created successfully')
 
-    def create_contact(self, item):        
-        #click new contact button
+    def create_contact(self, item):
+        # click new contact button
         # new_button_container = self.wait.until(EC.visibility_of_element_located((
         #     By.XPATH, '//div[@id="RouterView"]/div[1]/div[1]'
         # )))
@@ -409,10 +411,11 @@ class Solution(object):
         phone_number_block0 = self.wait.until(EC.visibility_of_element_located((
             By.XPATH, '//div[@data-cy="edit-contact-phone-number-0"]'
         )))
-        phone_number_input = phone_number_block0.find_element(By.TAG_NAME, 'input')
+        phone_number_input = phone_number_block0.find_element(
+            By.TAG_NAME, 'input')
         phone_number_input.send_keys(item['phone_number'])
 
-        if len(item['email']) > 0:    
+        if len(item['email']) > 0:
             email_address_collpase = self.wait.until(EC.element_to_be_clickable((
                 By.XPATH, '//div[@data-cy="email-block"]/div[1]'
             )))
@@ -421,7 +424,8 @@ class Solution(object):
             email_address_block0 = self.wait.until(EC.visibility_of_element_located((
                 By.XPATH, '//div[@data-cy="email-block"]/div[2]'
             )))
-            email_address_input = email_address_block0.find_element(By.TAG_NAME, 'input')
+            email_address_input = email_address_block0.find_element(
+                By.TAG_NAME, 'input')
             email_address_input.send_keys(item['email'])
 
         # street_address_block = self.wait.until(EC.visibility_of_element_located((
@@ -437,22 +441,27 @@ class Solution(object):
         )))
 
         if len(item['street']) > 0:
-            city_input = street_address_block0.find_element(By.XPATH, '//div[@data-cy="edit-contact-address"]/div[1]/div[1]/input[1]')
+            city_input = street_address_block0.find_element(
+                By.XPATH, '//div[@data-cy="edit-contact-address"]/div[1]/div[1]/input[1]')
             city_input.send_keys(item['street'])
         if len(item['city']) > 0:
-            city_input = street_address_block0.find_element(By.XPATH, '//div[@data-cy="edit-contact-city"]/div[1]/div[1]/input[1]')
+            city_input = street_address_block0.find_element(
+                By.XPATH, '//div[@data-cy="edit-contact-city"]/div[1]/div[1]/input[1]')
             city_input.send_keys(item['city'])
 
         if len(item['state']) > 0:
-            state_input = street_address_block0.find_element(By.XPATH, '//div[@data-cy="edit-contact-state"]/div[1]/div[1]/input[1]')
+            state_input = street_address_block0.find_element(
+                By.XPATH, '//div[@data-cy="edit-contact-state"]/div[1]/div[1]/input[1]')
             state_input.send_keys(item['state'])
 
-        if len(item['zip_code']) > 0:     
-            zip_input = street_address_block0.find_element(By.XPATH, '//div[@data-cy="edit-contact-zipCode"]/div[1]/div[1]/input[1]')
+        if len(item['zip_code']) > 0:
+            zip_input = street_address_block0.find_element(
+                By.XPATH, '//div[@data-cy="edit-contact-zipCode"]/div[1]/div[1]/input[1]')
             zip_input.send_keys(item['zip_code'])
 
         if len(item['country']):
-            country_input = street_address_block0.find_element(By.XPATH, '//div[@data-cy="edit-contact-country"]/div[1]/div[1]/input[1]')
+            country_input = street_address_block0.find_element(
+                By.XPATH, '//div[@data-cy="edit-contact-country"]/div[1]/div[1]/input[1]')
             country_input.send_keys(item['country'])
 
         create_button = self.wait.until(EC.element_to_be_clickable((
@@ -469,7 +478,6 @@ class Solution(object):
             time.sleep(5)
             return True
 
-
     def resolve(self):
         self.wait_body_loaded()
         self.enter_login_info()
@@ -480,5 +488,3 @@ class Solution(object):
         self.create_contacts()
         self.go_to_sms_page()
         self.send_messages_to_contacts()
-        
-        
