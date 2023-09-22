@@ -13,9 +13,11 @@ from app.settings import CAPTCHA_ENTIRE_IMAGE_FILE_PATH, CAPTCHA_SINGLE_IMAGE_FI
 from app.utils import get_question_id_by_target_name, resize_base64_image, read_contacts_data, write_message_history, contact_create_history, contact_create_failed_history
 
 class Solution(object):
-    def __init__(self, url, file_path, columns):
+    def __init__(self, url, file_path, columns, begin_row, end_row):
         self.file_path = file_path
         self.columns = columns
+        self.begin_row = begin_row
+        self.end_row = end_row
         options = webdriver.ChromeOptions()
         options.add_argument("--window-size=1920x1080")
         self.browser = webdriver.Chrome(options=options)
@@ -160,7 +162,7 @@ class Solution(object):
             verify_button.click()
             time.sleep(3)
             verify_button = self.get_verify_button()
-            if counter == 20: 
+            if counter == 10: 
                 logger.debug(f'Infinite captcha is more than 10.')
                 return FALSE
 
@@ -254,7 +256,7 @@ class Solution(object):
         logger.debug(f'current url is {self.browser.current_url}')
 
     def get_contacts_data(self):
-        return read_contacts_data(self.file_path, self.columns)
+        return read_contacts_data(self.file_path, self.columns, self.begin_row, self.end_row)
 
     def get_message_iframe(self) -> WebElement:
         self.browser.switch_to.default_content()
@@ -317,22 +319,13 @@ class Solution(object):
 
     def send_messages_to_contacts(self):
         contacts_data = self.get_contacts_data()
-        try:
-            start_row = int(START_ROW_INDEX)
-        except ValueError:
-            print("The string cannot be converted to an integer.")
-            start_row = 0
-        
-        try:
-            end_row = int(END_ROW_INDEX)
-        except ValueError:
-            print("The string cannot be converted to an integer.")
-            end_row = len(contacts_data)
+        start_row = 1 if self.begin_row < 0 else self.begin_row
+        end_row = len(contacts_data) if self.end_row == -1 else self.end_row
         
         if end_row < start_row: return
         if end_row < 0: return
 
-        for index, item in enumerate(contacts_data):
+        for index, item in enumerate(contacts_data, start=1):
             if index < start_row: continue
             if index > end_row: break
             self.send_sms(item['phone_number'], item['message'])            
@@ -352,24 +345,8 @@ class Solution(object):
     
     def create_contacts(self):
         contacts_data = self.get_contacts_data()
-        try:
-            start_row = int(START_ROW_INDEX)
-        except ValueError:
-            print("The string cannot be converted to an integer.")
-            start_row = 0
         
-        try:
-            end_row = int(END_ROW_INDEX)
-        except ValueError:
-            print("The string cannot be converted to an integer.")
-            end_row = len(contacts_data)
-        
-        if end_row < start_row: return
-        if end_row < 0: return
-        total = 0
-        for index, item in enumerate(contacts_data):
-            if index < start_row: continue
-            if index > end_row: break
+        for index, item in enumerate(contacts_data, start=1):
             successful = self.create_contact(item)            
             if successful: 
                 total += 1

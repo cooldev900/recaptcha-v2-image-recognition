@@ -41,7 +41,7 @@ class Item(BaseModel):
     messageTemplate: str
 
 @app.post("/send_sms")
-async def send_sms(csvfile: UploadFile  = File(...), firstName: str = Form(...), lastName: str = Form(), company: str = Form(), title: str = Form(), email: str = Form(), street: str = Form(...), city: str = Form(), state: str = Form(), zipcode: str = Form(), country: str = Form(), phoneNumber: str = Form(...), messageTemplate: str = Form(...)):
+async def send_sms(csvfile: UploadFile  = File(...), firstName: str = Form(...), lastName: str = Form(), company: str = Form(), title: str = Form(), email: str = Form(), street: str = Form(...), city: str = Form(), state: str = Form(), zipcode: str = Form(), country: str = Form(), phoneNumber: str = Form(...), messageTemplate: str = Form(...), beginRow: int = Form(), endRow: int = Form() ):
     # Do something with the data
     file_content = await csvfile.read()  # Read the uploaded file content
     file_path = f"csv/{csvfile.filename}"
@@ -65,10 +65,13 @@ async def send_sms(csvfile: UploadFile  = File(...), firstName: str = Form(...),
     }
 
     try:
-        Solution(url=CAPTCHA_DEMO_URL, file_path=file_path, columns=columns).resolve()
+        solution = Solution(url=CAPTCHA_DEMO_URL, file_path=file_path, columns=columns, end_row=endRow, begin_row=beginRow)
+        solution.resolve()
     except Exception as e:
         return {"result": "failed", "message": str(e)}
     else:
         return {"result": "success"}
+    finally:
+        del solution
 
     

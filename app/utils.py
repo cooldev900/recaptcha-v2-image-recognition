@@ -48,7 +48,7 @@ def convert_string_into_int(value):
         return -1
 
 
-def read_contacts_data(file_path, columns):
+def read_contacts_data(file_path, columns, begin_row, end_row):
     contact_list = []
     last_processed = get_last_processed()
     with open(file_path, 'r', encoding='utf-8-sig') as file:
@@ -64,6 +64,8 @@ def read_contacts_data(file_path, columns):
         csv_readr = csv.DictReader(file)
         for index, row in enumerate(csv_readr, start=1):
             # Resume from where we left off
+            if begin_row > 0 and begin_row > index: continue
+            if end_row != -1 and end_row > index: break
             if index <= last_processed:
                 continue
             contact_list.append({
