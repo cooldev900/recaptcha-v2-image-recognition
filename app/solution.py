@@ -13,7 +13,9 @@ from app.settings import CAPTCHA_ENTIRE_IMAGE_FILE_PATH, CAPTCHA_SINGLE_IMAGE_FI
 from app.utils import get_question_id_by_target_name, resize_base64_image, read_contacts_data, write_message_history, contact_create_history, contact_create_failed_history
 
 class Solution(object):
-    def __init__(self, url):
+    def __init__(self, url, file_path, columns):
+        self.file_path = file_path
+        self.columns = columns
         options = webdriver.ChromeOptions()
         options.add_argument("--window-size=1920x1080")
         self.browser = webdriver.Chrome(options=options)
@@ -252,7 +254,7 @@ class Solution(object):
         logger.debug(f'current url is {self.browser.current_url}')
 
     def get_contacts_data(self):
-        return read_contacts_data(COTACT_CSV_URL)
+        return read_contacts_data(self.file_path, self.columns)
 
     def get_message_iframe(self) -> WebElement:
         self.browser.switch_to.default_content()
@@ -501,6 +503,5 @@ class Solution(object):
         self.create_contacts()
         self.go_to_sms_page()
         self.send_messages_to_contacts()
-        self.get_contacts_data()
         
         

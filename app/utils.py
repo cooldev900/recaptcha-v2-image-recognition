@@ -48,7 +48,7 @@ def convert_string_into_int(value):
         return -1
 
 
-def read_contacts_data(file_path):
+def read_contacts_data(file_path, columns):
     contact_list = []
     last_processed = get_last_processed()
     with open(file_path, 'r', encoding='utf-8-sig') as file:
@@ -67,18 +67,18 @@ def read_contacts_data(file_path):
             if index <= last_processed:
                 continue
             contact_list.append({
-                'message': replace_values_into_templage(row),
-                'phone_number': '1' + row.get(PHONE_NUMBER, "").strip(),
-                'first_name': row.get(FIRST_NAME, "").strip() if len(FIRST_NAME) else "Unknown",
-                'last_name': row.get(LAST_NAME, "").strip() if len(LAST_NAME) else "",
-                'company': row.get(COMPANY_NAME, "").strip() if len(COMPANY_NAME) else "",
-                'title': row.get(TITLE, "").strip() if len(TITLE) else "",
-                'email': row.get(EMAIL_ADDRESS, "").strip() if len(FIRST_NAME) else "",
-                'street': row.get(STREET_ADDRESS, "").strip() if len(STREET_ADDRESS) else "",
-                'city': row.get(CITY, "").strip() if len(CITY) else "",
-                'state': row.get(STATE, "").strip() if len(STATE) else "",
-                'zip_code': row.get(ZIP_CODE, "").strip() if len(ZIP_CODE) else "",
-                'country': row.get(COUNTRY, "").strip() if len(COUNTRY) else "",
+                'message': replace_values_into_templage(row, columns),
+                'phone_number': '1' + row.get(columns["phone_number"], "").strip(),
+                'first_name': row.get(columns["first_name"], "").strip() if columns["first_name"] != "-" else "Unknown",
+                'last_name': row.get(columns["last_name"], "").strip() if columns["last_name"] != "-" else "",
+                'company': row.get(columns["company"], "").strip() if columns["company"] != "-" else "",
+                'title': row.get(columns["title"], "").strip() if columns["title"] != "-" else "",
+                'email': row.get(columns["email"], "").strip() if columns["email"] != "-" else "",
+                'street': row.get(columns["street"], "").strip() if columns["street"] != "-" else "",
+                'city': row.get(columns["city"], "").strip() if columns["city"] != "-" else "",
+                'state': row.get(columns["state"], "").strip() if columns["state"] != "-" else "",
+                'zip_code': row.get(columns["zip_code"], "").strip() if columns["zip_code"] != "-" else "",
+                'country': row.get(columns["country"], "").strip() if columns["country"] != "-" else "",
             })
 
             # Save the progress
@@ -87,17 +87,15 @@ def read_contacts_data(file_path):
         # If processing finishes, we can delete the progress file
         if os.path.exists(PROGRESS_FILE):
             os.remove(PROGRESS_FILE)
-
+    
     return contact_list
 
 
-def replace_values_into_templage(row):
-    message = MESSAGE_TEMPLATE
-    columns = [PHONE_NUMBER, MESSAGE_HISTORY_URL, FIRST_NAME, LAST_NAME, COMPANY_NAME,
-               TITLE, EMAIL_ADDRESS, STREET_ADDRESS, CITY, STATE, ZIP_CODE, COUNTRY]
-    for value in columns:
+def replace_values_into_templage(row, columns):
+    message = columns['message_template']
+    for value in columns.values():
         if len(value):
-            message = message.replace(value, row.get(value, "").strip())
+            message = message.replace("{" + value + "}", row.get(value, "").strip())
     return message
 
 
