@@ -6,11 +6,21 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.common.action_chains import ActionChains
+# from selenium.webdriver.common.proxy import Proxy, ProxyType
+# from selenium.common.exceptions import NoSuchElementException
+# from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
+from selenium.webdriver.chrome.options import Options
+
 import time
 from loguru import logger
 from app.captcha_resolver import CaptchaResolver
-from app.settings import CAPTCHA_ENTIRE_IMAGE_FILE_PATH, CAPTCHA_SINGLE_IMAGE_FILE_PATH, USER_NAME, PASSWORD, COTACT_CSV_URL, MESSAGE_TEMPLATE, START_ROW_INDEX, END_ROW_INDEX
+from app.settings import CAPTCHA_ENTIRE_IMAGE_FILE_PATH, CAPTCHA_SINGLE_IMAGE_FILE_PATH, USER_NAME, PASSWORD, MESSAGE_TEMPLATE, MIN_RAND,MAX_RAND
 from app.utils import get_question_id_by_target_name, resize_base64_image, read_contacts_data, write_message_history, contact_create_history, contact_create_failed_history
+from random import uniform, randint
+import numpy as np
+import scipy.interpolate as si
+import os
 
 
 class Solution(object):
@@ -20,12 +30,58 @@ class Solution(object):
         self.begin_row = begin_row
         self.end_row = end_row
         options = webdriver.ChromeOptions()
-        options.add_argument("--window-size=1920x1080")
+        path = os.path.abspath("./buster_captcha_solver_2.0.1_0.crx")
+        options.add_extension(path)
         self.browser = webdriver.Chrome(options=options)
+        
+
         self.browser.get(url)
-        self.wait = WebDriverWait(self.browser, 200)
+        self.wait = WebDriverWait(self.browser, 300)
         self.captcha_resolver = CaptchaResolver()
         self.index = 0
+    
+     # Using B-spline for simulate humane like mouse movments
+    def human_like_mouse_move(self, action, start_element):
+        points = [[6, 2], [3, 2],[0, 0], [0, 2]];
+        points = np.array(points)
+        x = points[:,0]
+        y = points[:,1]
+
+        t = range(len(points))
+        ipl_t = np.linspace(0.0, len(points) - 1, 100)
+
+        x_tup = si.splrep(t, x, k=1)
+        y_tup = si.splrep(t, y, k=1)
+
+        x_list = list(x_tup)
+        xl = x.tolist()
+        x_list[1] = xl + [0.0, 0.0, 0.0, 0.0]
+
+        y_list = list(y_tup)
+        yl = y.tolist()
+        y_list[1] = yl + [0.0, 0.0, 0.0, 0.0]
+
+        x_i = si.splev(ipl_t, x_list)
+        y_i = si.splev(ipl_t, y_list)
+
+        startElement = start_element
+
+        action.move_to_element(startElement)
+        action.perform()
+
+        c = 5 # change it for more move
+        i = 0
+        for mouse_x, mouse_y in zip(x_i, y_i):
+            action.move_by_offset(mouse_x,mouse_y)
+            action.perform()
+            logger.debug(f"Move mouse to ({mouse_x}, {mouse_y})")
+            i += 1
+            if i == c:
+                break
+    
+    def wait_between(self, a, b):
+        rand=uniform(a, b)
+        time.sleep(rand)
 
     def __del__(self):
         time.sleep(10)
@@ -73,16 +129,25 @@ class Solution(object):
             return entire_captcha_element.rect.get('width')
         return None
 
-    def trigger_captcha(self) -> None:
+    # Helper for getting the shadow root of a shadow host
+    def getShadowRoot(self, host):
+        shadow_root = self.browser.execute_script("return arguments[0].shadowRoot", host)
+        return shadow_root
+
+    def do_captcha(self) -> None:
         self.switch_to_captcha_entry_iframe()
         captcha_entry = self.wait.until(EC.visibility_of_element_located(
             (By.ID, 'recaptcha-anchor')))
+        self.wait_between(MIN_RAND, MAX_RAND)
+        action = ActionChains(self.browser)
+        self.human_like_mouse_move(action, captcha_entry)
         captcha_entry.click()
-        time.sleep(2)
-        self.switch_to_captcha_content_iframe()
-        entire_captcha_element: WebElement = self.get_entire_captcha_element()
-        if entire_captcha_element.is_displayed:
-            logger.debug('trigged captcha successfully')
+        time.sleep(5)
+        if captcha_entry.get_attribute('aria-checked') == "true": return
+        else:
+            while captcha_entry.get_attribute('aria-checked') != "true":
+                time.sleep(1)
+
 
     def get_captcha_target_name(self) -> WebElement:
         captcha_target_name_element: WebElement = self.wait.until(EC.visibility_of_element_located(
@@ -135,8 +200,6 @@ class Solution(object):
             if has_object:
                 single_captcha_element.click()
                 time.sleep(3)
-            # check for new single captcha
-            # self.verify_single_captcha(index)
 
     def get_verify_error_info(self):
         self.switch_to_captcha_content_iframe()
@@ -481,8 +544,7 @@ class Solution(object):
     def resolve(self):
         self.wait_body_loaded()
         self.enter_login_info()
-        self.trigger_captcha()
-        self.verify_entire_captcha()
+        self.do_captcha()        
         self.login()
         self.go_to_contact_page()
         self.create_contacts()
