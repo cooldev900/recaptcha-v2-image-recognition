@@ -1,3 +1,4 @@
+import os
 from pickle import FALSE
 from typing import List, Union
 import requests
@@ -6,11 +7,19 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.common.keys import Keys
 import time
 from loguru import logger
 from app.captcha_resolver import CaptchaResolver
 from app.settings import CAPTCHA_ENTIRE_IMAGE_FILE_PATH, CAPTCHA_SINGLE_IMAGE_FILE_PATH, USER_NAME, PASSWORD, COTACT_CSV_URL, MESSAGE_TEMPLATE, START_ROW_INDEX, END_ROW_INDEX
 from app.utils import get_question_id_by_target_name, resize_base64_image, read_contacts_data, write_message_history, contact_create_history, contact_create_failed_history
+
+# recaptcha libraries
+import speech_recognition as sr
+import ffmpy
+import requests
+import urllib
+import pydub
 
 
 class Solution(object):
@@ -478,13 +487,43 @@ class Solution(object):
             time.sleep(5)
             return True
 
+    def audio_captcha(self):
+        self.switch_to_captcha_entry_iframe()
+        captcha_entry = self.wait.until(EC.visibility_of_element_located(
+            (By.ID, 'recaptcha-anchor')))
+        captcha_entry.click()
+        time.sleep(2)
+        self.switch_to_captcha_content_iframe()
+        audio_button = self.wait.until(EC.element_to_be_clickable(
+            (By.ID, 'recaptcha-audio-button')))
+        audio_button.click()
+        play_button = self.wait.until(EC.element_to_be_clickable(
+            (By.XPATH, '//div[@class="rc-audiochallenge-play-button"]/button[1]')))
+        play_button.click()
+        audio_source = self.wait.until(EC.visibility_of_element_located(
+            (By.ID, 'audio-source')))
+        src = audio_source.get_attribute('src')
+        urllib.request.urlretrieve(src, os.getcwd()+"\\sample.mp3")
+
+        sound = pydub.AudioSegment.from_mp3(os.getcwd()+"\\sample.mp3")
+        sound.export(os.getcwd()+"\\sample.wav", format="wav")
+        sample_audio = sr.AudioFile(os.getcwd()+"\\sample.wav")
+        # translate audio to text with google voice recognition
+        key = sr.recognize_google(sample_audio)
+        print("[INFO] Recaptcha Passcode: %s" % key)
+        audio_response = self.wait.until(EC.visibility_of_element_located(
+            (By.ID, 'audio-response')))
+        audio_response.send_keys(key.lower())
+        audio_response.send_keys(keys.ENTER)
+
     def resolve(self):
         self.wait_body_loaded()
         self.enter_login_info()
-        self.trigger_captcha()
-        self.verify_entire_captcha()
-        self.login()
-        self.go_to_contact_page()
-        self.create_contacts()
-        self.go_to_sms_page()
-        self.send_messages_to_contacts()
+        self.audio_captcha()
+        # self.trigger_captcha()
+        # self.verify_entire_captcha()
+        # self.login()
+        # self.go_to_contact_page()
+        # self.create_contacts()
+        # self.go_to_sms_page()
+        # self.send_messages_to_contacts()
