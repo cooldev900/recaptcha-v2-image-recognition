@@ -83,9 +83,9 @@ class Solution(object):
         rand=uniform(a, b)
         time.sleep(rand)
 
-    def __del__(self):
-        time.sleep(10)
-        self.browser.close()
+    # def __del__(self):
+    #     time.sleep(10)
+    #     self.browser.close()
 
     def get_all_frames(self) -> List[WebElement]:
         self.browser.switch_to.default_content()
@@ -347,7 +347,7 @@ class Solution(object):
             By.CSS_SELECTOR, ".text-ellipsis.item-option-no-border.Vlt-dropdown__link")
         new_sms_button = new_dropdowns[1]
         new_sms_button.click()
-        time.sleep(3)
+        time.sleep(2)
         # logger.debug(f'buttons {new_dropdowns}')
         # logger.debug(f'new sms button {new_sms_button.get_attribute("outerHTML")}')
 
@@ -355,7 +355,7 @@ class Solution(object):
         phone_input: WebElement = self.wait.until(EC.visibility_of_element_located(
             (By.CSS_SELECTOR, '#filterElement')))
         phone_input.send_keys(phone_number)
-        time.sleep(1)
+        time.sleep(2)
         # logger.debug(f'phone input {phone_input.get_attribute("outerHTML")}')
 
         # click append button
@@ -370,14 +370,12 @@ class Solution(object):
         message_input: WebElement = self.wait.until(EC.visibility_of_element_located(
             (By.CLASS_NAME, 'ProseMirror')))
         message_input.send_keys(message)
-        time.sleep(3)
         # logger.debug(f'phone input {message_input.get_attribute("outerHTML")}')
 
         # send message
         message_send_icon: WebElement = self.wait.until(EC.visibility_of_element_located(
             (By.CLASS_NAME, 'icon-template-purple')))
         message_send_icon.click()
-        time.sleep(5)
         # logger.debug(f'phone input {message_send_icon.get_attribute("outerHTML")}')
 
     def convert_message(self, name, address):
@@ -427,7 +425,7 @@ class Solution(object):
         # new_button_container = self.wait.until(EC.visibility_of_element_located((
         #     By.XPATH, '//div[@id="RouterView"]/div[1]/div[1]'
         # )))
-        time.sleep(5)
+        time.sleep(2)
         new_button = self.wait.until(EC.element_to_be_clickable((
             By.XPATH, '//button[@data-cy="title-button"]'
         )))
