@@ -36,7 +36,7 @@ class Solution(object):
         
 
         self.browser.get(url)
-        self.wait = WebDriverWait(self.browser, 300)
+        self.wait = WebDriverWait(self.browser, 100)
         self.captcha_resolver = CaptchaResolver()
         self.index = 0
     
@@ -142,7 +142,7 @@ class Solution(object):
         action = ActionChains(self.browser)
         self.human_like_mouse_move(action, captcha_entry)
         captcha_entry.click()
-        time.sleep(5)
+        time.sleep(2)
         if captcha_entry.get_attribute('aria-checked') == "true": return
         else:
             while captcha_entry.get_attribute('aria-checked') != "true":
@@ -158,48 +158,6 @@ class Solution(object):
         verify_button = self.wait.until(EC.visibility_of_element_located(
             (By.CSS_SELECTOR, '#recaptcha-verify-button')))
         return verify_button
-
-    def verify_single_captcha(self, index):
-        has_object = True
-        while has_object:
-            time.sleep(10)
-            elements = self.wait.until(EC.visibility_of_all_elements_located(
-                (By.CSS_SELECTOR, '#rc-imageselect-target table td')))
-            single_captcha_element: WebElement = elements[index]
-            class_name = single_captcha_element.get_attribute('class')
-            logger.debug(
-                f'verifiying single captcha {index}, class {class_name}')
-            if 'rc-imageselect-tileselected' in class_name:
-                logger.debug(f'no new single captcha displayed')
-                return
-            logger.debug('new single captcha displayed')
-            single_captcha_url = single_captcha_element.find_element(By.CSS_SELECTOR,
-                                                                     'img').get_attribute('src')
-            # logger.debug(f'single_captcha_url {single_captcha_url}')
-            with open(CAPTCHA_SINGLE_IMAGE_FILE_PATH, 'wb') as f:
-                f.write(requests.get(single_captcha_url).content)
-            # with open("".join([CAPTCHA_SINGLE_IMAGE_FILE_PATH_SERIAL, "_", str(index), "_", str(self.index), ".png"]), 'wb') as f:
-            #     self.index += 1
-            #     f.write(requests.get(single_captcha_url).content)
-            resized_single_captcha_base64_string = resize_base64_image(
-                CAPTCHA_SINGLE_IMAGE_FILE_PATH, (100, 100))
-            single_captcha_recognize_result = self.captcha_resolver.create_task(
-                resized_single_captcha_base64_string, get_question_id_by_target_name(self.captcha_target_name))
-            if not single_captcha_recognize_result:
-                logger.error('count not get single captcha recognize result')
-                return
-            has_object = single_captcha_recognize_result.get(
-                'solution', {}).get('hasObject')
-            logger.debug(f'HadObject {self.index - 1} {has_object}')
-            if has_object is None:
-                logger.error('count not get captcha recognized indices')
-                return
-            if has_object is False:
-                logger.debug('no more object in this single captcha')
-                return
-            if has_object:
-                single_captcha_element.click()
-                time.sleep(3)
 
     def get_verify_error_info(self):
         self.switch_to_captcha_content_iframe()
@@ -217,77 +175,6 @@ class Solution(object):
 
     def get_is_failed(self):
         return bool(self.get_verify_error_info())
-
-    def verify_entire_captcha(self):
-        # check the if verify button is displayed
-        verify_button: WebElement = self.get_verify_button()
-        counter = 0
-        while verify_button.is_displayed and verify_button.text != "VERIFY" and counter < 10:
-            logger.debug(f'button text {verify_button.text}')
-            verify_button.click()
-            time.sleep(3)
-            verify_button = self.get_verify_button()
-            if counter == 10:
-                logger.debug(f'Infinite captcha is more than 10.')
-                return FALSE
-
-        self.entire_captcha_natural_width = self.get_entire_captcha_natural_width()
-        # logger.debug(
-        #     f'entire_captcha_natural_width {self.entire_captcha_natural_width}'
-        # )
-        self.captcha_target_name = self.get_captcha_target_name()
-        logger.debug(
-            f'captcha_target_name {self.captcha_target_name}'
-        )
-        entire_captcha_element: WebElement = self.get_entire_captcha_element()
-        entire_captcha_url = entire_captcha_element.find_element(By.CSS_SELECTOR,
-                                                                 'td img').get_attribute('src')
-        # logger.debug(f'entire_captcha_url {entire_captcha_url}')
-        with open(CAPTCHA_ENTIRE_IMAGE_FILE_PATH, 'wb') as f:
-            f.write(requests.get(entire_captcha_url).content)
-        # logger.debug(
-        #     f'saved entire captcha to {CAPTCHA_ENTIRE_IMAGE_FILE_PATH}')
-        resized_entire_captcha_base64_string = resize_base64_image(
-            CAPTCHA_ENTIRE_IMAGE_FILE_PATH, (self.entire_captcha_natural_width,
-                                             self.entire_captcha_natural_width))
-        # logger.debug(
-        #     f'resized_entire_captcha_base64_string, {resized_entire_captcha_base64_string[0:100]}...')
-        entire_captcha_recognize_result = self.captcha_resolver.create_task(
-            resized_entire_captcha_base64_string,
-            get_question_id_by_target_name(self.captcha_target_name)
-        )
-        if not entire_captcha_recognize_result:
-            logger.error('count not get captcha recognize result')
-            return
-        recognized_indices = entire_captcha_recognize_result.get(
-            'solution', {}).get('objects')
-        if not recognized_indices:
-            logger.error('count not get captcha recognized indices')
-            return
-        single_captcha_elements = self.wait.until(EC.visibility_of_all_elements_located(
-            (By.CSS_SELECTOR, '#rc-imageselect-target table td')))
-        logger.debug(f'captcha recogize indices {recognized_indices}')
-        for recognized_index in recognized_indices:
-            single_captcha_element: WebElement = single_captcha_elements[recognized_index]
-            single_captcha_element.click()
-            # check if need verify single captcha
-            self.verify_single_captcha(recognized_index)
-
-        # after all captcha clicked
-        verify_button = self.get_verify_button()
-        if verify_button.is_displayed:
-            verify_button.click()
-            logger.debug('verifed button clicked')
-            time.sleep(3)
-
-        is_succeed = self.get_is_successful()
-        if is_succeed:
-            logger.debug('verifed successfully')
-        else:
-            verify_error_info = self.get_verify_error_info()
-            logger.debug(f'verify_error_info {verify_error_info}')
-            # self.verify_entire_captcha()
-        # return is_succeed
 
     def wait_body_loaded(self):
         self.browser.implicitly_wait(20)
@@ -309,7 +196,6 @@ class Solution(object):
             (By.XPATH, '//vwc-button[@data-aid="login-button"]')))
         login_button.click()
         self.wait.until(EC.url_to_be("https://app.vonage.com/whats-new"))
-        time.sleep(30)
         logger.debug(f'current url is {self.browser.current_url}')
 
     def go_to_sms_page(self):
@@ -355,7 +241,7 @@ class Solution(object):
         phone_input: WebElement = self.wait.until(EC.visibility_of_element_located(
             (By.CSS_SELECTOR, '#filterElement')))
         phone_input.send_keys(phone_number)
-        time.sleep(2)
+        time.sleep(1)
         # logger.debug(f'phone input {phone_input.get_attribute("outerHTML")}')
 
         # click append button
@@ -425,7 +311,6 @@ class Solution(object):
         # new_button_container = self.wait.until(EC.visibility_of_element_located((
         #     By.XPATH, '//div[@id="RouterView"]/div[1]/div[1]'
         # )))
-        time.sleep(2)
         new_button = self.wait.until(EC.element_to_be_clickable((
             By.XPATH, '//button[@data-cy="title-button"]'
         )))
@@ -536,7 +421,7 @@ class Solution(object):
             return False
         else:
             create_button.click()
-            time.sleep(5)
+            time.sleep(2)
             return True
 
     def resolve(self):
