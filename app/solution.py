@@ -213,11 +213,6 @@ class Solution(object):
             (By.CLASS_NAME, 'icon-template-purple')))
         message_send_icon.click()
 
-    def convert_message(self, name, address):
-        message = MESSAGE_TEMPLATE.replace('$name', name)
-        message = message.replace('$address', address)
-        return message
-
     def send_messages_to_contacts(self):
         contacts_data = self.get_contacts_data()
         total = 0
@@ -228,6 +223,7 @@ class Solution(object):
 
         self.browser.quit()
         logger.debug(f'Total {total} of messages were sent successfully')
+        return f'Total {total} of messages were sent successfully'
 
     def go_to_contact_page(self):
         self.browser.switch_to.default_content()
@@ -374,4 +370,4 @@ class Solution(object):
         self.go_to_contact_page()
         self.create_contacts()
         self.go_to_sms_page()
-        self.send_messages_to_contacts()
+        return self.send_messages_to_contacts()

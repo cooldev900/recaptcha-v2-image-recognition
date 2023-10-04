@@ -66,8 +66,8 @@ async def send_sms(csvfile: UploadFile  = File(...), firstName: str = Form(...),
 
     try:
         solution = Solution(url=CAPTCHA_DEMO_URL, file_path=file_path, columns=columns, end_row=endRow, begin_row=beginRow)
-        await solution.resolve()
-        return {"result": "success"}
+        message = await solution.resolve()
+        return {"result": "success", "message": message}
     except Exception as e:
         return {"result": "failed", "message": str(e)}
         
