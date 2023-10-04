@@ -53,7 +53,11 @@ pip3 install -r requirements.txt
 At last, run demo:
 
 ```
-python3 main.py
+python3 test.py
+```
+
+```
+uvicorn main:app --reload
 ```
 
 Result:
