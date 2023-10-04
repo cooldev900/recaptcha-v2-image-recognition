@@ -1,23 +1,16 @@
-from pickle import FALSE
 from typing import List, Union
-import requests
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.action_chains import ActionChains
-# from selenium.webdriver.common.proxy import Proxy, ProxyType
-# from selenium.common.exceptions import NoSuchElementException
-# from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
-from selenium.webdriver.chrome.options import Options
 
 import time
 from loguru import logger
-from app.captcha_resolver import CaptchaResolver
-from app.settings import CAPTCHA_ENTIRE_IMAGE_FILE_PATH, CAPTCHA_SINGLE_IMAGE_FILE_PATH, USER_NAME, PASSWORD, MESSAGE_TEMPLATE, MIN_RAND,MAX_RAND
-from app.utils import get_question_id_by_target_name, resize_base64_image, read_contacts_data, write_message_history, contact_create_history, contact_create_failed_history
-from random import uniform, randint
+from app.settings import USER_NAME, PASSWORD, MIN_RAND,MAX_RAND
+from app.utils import read_contacts_data, write_message_history, contact_create_history, contact_create_failed_history
+from random import uniform
 import numpy as np
 import scipy.interpolate as si
 import os
@@ -37,7 +30,6 @@ class Solution(object):
 
         self.browser.get(url)
         self.wait = WebDriverWait(self.browser, 100)
-        self.captcha_resolver = CaptchaResolver()
         self.index = 0
     
      # Using B-spline for simulate humane like mouse movments
@@ -111,28 +103,12 @@ class Solution(object):
         captcha_content_iframe: WebElement = self.get_captcha_content_iframe()
         self.browser.switch_to.frame(captcha_content_iframe)
 
-    def get_entire_captcha_element(self) -> WebElement:
-        entire_captcha_element: WebElement = self.wait.until(EC.element_to_be_clickable(
-            (By.CSS_SELECTOR, '#rc-imageselect-target')))
-        return entire_captcha_element
-
     def get_entire_captcha_natural_width(self) -> Union[int, None]:
         result = self.browser.execute_script(
             "return document.querySelector('div.rc-image-tile-wrapper > img').naturalWidth")
         if result:
             return int(result)
         return None
-
-    def get_entire_captcha_display_width(self) -> Union[int, None]:
-        entire_captcha_element = self.get_entire_captcha_element()
-        if entire_captcha_element:
-            return entire_captcha_element.rect.get('width')
-        return None
-
-    # Helper for getting the shadow root of a shadow host
-    def getShadowRoot(self, host):
-        shadow_root = self.browser.execute_script("return arguments[0].shadowRoot", host)
-        return shadow_root
 
     def do_captcha(self) -> None:
         self.switch_to_captcha_entry_iframe()
@@ -158,23 +134,6 @@ class Solution(object):
         verify_button = self.wait.until(EC.visibility_of_element_located(
             (By.CSS_SELECTOR, '#recaptcha-verify-button')))
         return verify_button
-
-    def get_verify_error_info(self):
-        self.switch_to_captcha_content_iframe()
-        self.browser.execute_script(
-            "return document.querySelector('div.rc-imageselect-incorrect-response')?.text")
-
-    def get_is_successful(self):
-        self.switch_to_captcha_entry_iframe()
-        anchor: WebElement = self.wait.until(EC.visibility_of_element_located((
-            By.ID, 'recaptcha-anchor'
-        )))
-        checked = anchor.get_attribute('aria-checked')
-        logger.debug(f'checked {checked}')
-        return str(checked) == 'true'
-
-    def get_is_failed(self):
-        return bool(self.get_verify_error_info())
 
     def wait_body_loaded(self):
         self.browser.implicitly_wait(20)
@@ -202,7 +161,6 @@ class Solution(object):
         self.browser.switch_to.default_content()
         contact_dropdown = self.browser.find_element(
             By.CSS_SELECTOR, 'a[href="/my-apps/messages/sms"]')
-        # logger.debug(f'new contact button {contact_dropdown.get_attribute("outerHTML")}')
         contact_dropdown.click()
         self.wait.until(EC.url_to_be(
             "https://app.vonage.com/my-apps/messages/sms"))
@@ -227,42 +185,33 @@ class Solution(object):
         new_button = self.browser.find_element(By.CLASS_NAME, "new-button")
         new_button.click()
         time.sleep(1)
-        # logger.debug(f'new sms button {new_button.get_attribute("outerHTML")}')
 
         new_dropdowns = self.browser.find_elements(
             By.CSS_SELECTOR, ".text-ellipsis.item-option-no-border.Vlt-dropdown__link")
         new_sms_button = new_dropdowns[1]
         new_sms_button.click()
         time.sleep(2)
-        # logger.debug(f'buttons {new_dropdowns}')
-        # logger.debug(f'new sms button {new_sms_button.get_attribute("outerHTML")}')
 
         # type phone number
         phone_input: WebElement = self.wait.until(EC.visibility_of_element_located(
             (By.CSS_SELECTOR, '#filterElement')))
         phone_input.send_keys(phone_number)
-        time.sleep(1)
-        # logger.debug(f'phone input {phone_input.get_attribute("outerHTML")}')
 
         # click append button
         phone_append_button: WebElement = self.wait.until(EC.element_to_be_clickable(
             (By.CLASS_NAME, 'button-append')))
         phone_append_button.click()
-        time.sleep(1)
-        # logger.debug(f'phone_append_button {phone_append_button.get_attribute("outerHTML")}')
 
         # type message
         self.switch_to_message_iframe()
         message_input: WebElement = self.wait.until(EC.visibility_of_element_located(
             (By.CLASS_NAME, 'ProseMirror')))
         message_input.send_keys(message)
-        # logger.debug(f'phone input {message_input.get_attribute("outerHTML")}')
 
         # send message
         message_send_icon: WebElement = self.wait.until(EC.visibility_of_element_located(
             (By.CLASS_NAME, 'icon-template-purple')))
         message_send_icon.click()
-        # logger.debug(f'phone input {message_send_icon.get_attribute("outerHTML")}')
 
     def convert_message(self, name, address):
         message = MESSAGE_TEMPLATE.replace('$name', name)
@@ -285,7 +234,6 @@ class Solution(object):
         contact_dropdown = self.wait.until(EC.element_to_be_clickable((
             By.CSS_SELECTOR, 'a[href="/contacts"]'
         )))
-        # logger.debug(f'new contact button {contact_dropdown.get_attribute("outerHTML")}')
         contact_dropdown.click()
         self.wait.until(EC.url_to_be("https://app.vonage.com/contacts"))
         logger.debug(f'current url is {self.browser.current_url}')
@@ -308,9 +256,6 @@ class Solution(object):
 
     def create_contact(self, item):
         # click new contact button
-        # new_button_container = self.wait.until(EC.visibility_of_element_located((
-        #     By.XPATH, '//div[@id="RouterView"]/div[1]/div[1]'
-        # )))
         new_button = self.wait.until(EC.element_to_be_clickable((
             By.XPATH, '//button[@data-cy="title-button"]'
         )))
@@ -374,9 +319,6 @@ class Solution(object):
                 By.TAG_NAME, 'input')
             email_address_input.send_keys(item['email'])
 
-        # street_address_block = self.wait.until(EC.visibility_of_element_located((
-        #     By.XPATH, '//div[@data-cy="address-block"]'
-        # )))
         street_address_collpase = self.wait.until(EC.element_to_be_clickable((
             By.XPATH, '//div[@data-cy="address-block"]/div[1]'
         )))

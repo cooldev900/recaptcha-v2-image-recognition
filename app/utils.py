@@ -1,7 +1,5 @@
-from PIL import Image
-import base64
 from loguru import logger
-from app.settings import CAPTCHA_RESIZED_IMAGE_FILE_PATH, CAPTCHA_TARGET_NAME_QUESTION_ID_MAPPING, MESSAGE_TEMPLATE, PHONE_NUMBER, MESSAGE_HISTORY_URL, FIRST_NAME, LAST_NAME, COMPANY_NAME, TITLE, EMAIL_ADDRESS, STREET_ADDRESS, CITY, STATE, ZIP_CODE, COUNTRY
+from app.settings import MESSAGE_HISTORY_URL
 import csv
 import os
 from datetime import datetime
@@ -19,24 +17,6 @@ def get_last_processed():
 def save_last_processed(row_num):
     with open(PROGRESS_FILE, "w") as file:
         file.write(str(row_num))
-
-
-def resize_base64_image(filename, size):
-    width, height = size
-    img = Image.open(filename)
-    new_img = img.resize((width, height))
-    new_img.save(CAPTCHA_RESIZED_IMAGE_FILE_PATH)
-    with open(CAPTCHA_RESIZED_IMAGE_FILE_PATH, "rb") as f:
-        data = f.read()
-        encoded_string = base64.b64encode(data)
-        return encoded_string.decode('utf-8')
-
-
-def get_question_id_by_target_name(target_name):
-    logger.debug(f'try to get question id by {target_name}')
-    question_id = CAPTCHA_TARGET_NAME_QUESTION_ID_MAPPING.get(target_name)
-    logger.debug(f'question_id {question_id}')
-    return question_id
 
 
 def convert_string_into_int(value):
@@ -59,7 +39,7 @@ def read_contacts_data(file_path, columns, begin_row, end_row):
                 logger.debug(f'{row}')
             else:
                 break
-    # logger.debug(f'begin row {type(begin_row)} {begin_row} end_row {type(end_row)} {end_row} last_processed {last_processed}')
+    
     with open(file_path, 'r', encoding='utf-8-sig') as file:
         csv_readr = csv.DictReader(file)
         for index, row in enumerate(csv_readr, start=2):
