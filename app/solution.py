@@ -212,6 +212,7 @@ class Solution(object):
         message_send_icon: WebElement = self.wait.until(EC.visibility_of_element_located(
             (By.CLASS_NAME, 'icon-template-purple')))
         message_send_icon.click()
+        time.sleep(2)
 
     def send_messages_to_contacts(self):
         contacts_data = self.get_contacts_data()
