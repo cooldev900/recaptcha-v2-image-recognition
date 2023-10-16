@@ -22,10 +22,10 @@ class Solution(object):
         self.columns = columns
         self.begin_row = begin_row
         self.end_row = end_row
-        options = webdriver.ChromeOptions()
-        path = os.path.abspath("./buster_captcha_solver_2.0.1_0.crx")
-        options.add_extension(path)
-        self.browser = webdriver.Chrome(options=options)
+        # options = webdriver.ChromeOptions()
+        # path = os.path.abspath("./buster_captcha_solver_2.0.1_0.crx")
+        # options.add_extension(path)
+        self.browser = webdriver.Chrome()
         
 
         self.browser.get(url)
