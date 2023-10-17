@@ -22,15 +22,24 @@ class Solution(object):
         self.columns = columns
         self.begin_row = begin_row
         self.end_row = end_row
-        # options = webdriver.ChromeOptions()
-        # path = os.path.abspath("./buster_captcha_solver_2.0.1_0.crx")
-        # options.add_extension(path)
         self.browser = webdriver.Chrome()
         
 
         self.browser.get(url)
         self.wait = WebDriverWait(self.browser, 100)
         self.index = 0
+    
+    def wait_body_loaded(self):        
+        logger.debug(f'current url {self.browser.current_url}')
+        if "login.auth.vonage.com/authenticationendpoint/login.do" in self.browser.current_url:
+            logger.debug(f'no refresh')
+            return
+        
+        self.wait.until(EC.url_to_be("https://app.vonage.com/login"))
+        self.browser.implicitly_wait(5)        
+        self.browser.refresh()
+        logger.debug(f'refresh https://app.vonage.com/login')
+        self.wait.until(EC.url_contains("login.auth.vonage.com/authenticationendpoint/login.do"))        
     
      # Using B-spline for simulate humane like mouse movments
     def human_like_mouse_move(self, action, start_element):
@@ -135,9 +144,6 @@ class Solution(object):
             (By.CSS_SELECTOR, '#recaptcha-verify-button')))
         return verify_button
 
-    def wait_body_loaded(self):
-        self.browser.implicitly_wait(20)
-
     def enter_login_info(self):
         username = self.wait.until(EC.visibility_of_element_located(
             (By.ID, "userid")))
@@ -155,6 +161,13 @@ class Solution(object):
             (By.XPATH, '//vwc-button[@data-aid="login-button"]')))
         login_button.click()
         self.wait.until(EC.url_to_be("https://app.vonage.com/whats-new"))
+        self.browser.implicitly_wait(10)
+        try:
+            modal_cancel_button = WebDriverWait(self.browser, 10).until(EC.element_to_be_clickable(
+            (By.XPATH, '//button[@data-cy="desktop-promotion-cancel"]')))
+            modal_cancel_button.click()
+        except:
+            logger.debug(f'no enable calls modal')    
         logger.debug(f'current url is {self.browser.current_url}')
 
     def go_to_sms_page(self):
