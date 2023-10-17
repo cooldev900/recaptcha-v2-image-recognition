@@ -18,7 +18,7 @@ USER_NAME=<username>
 PASSWORD=<password>
 
 MESSAGE_HISTORY_URL=<message history file path>
-CAPTCHA_DEMO_URL=<vonage login url>
+CAPTCHA_DEMO_URL=https://app.vonage.com/
 ```
 
 Next, you need to install packages:
