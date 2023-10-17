@@ -18,4 +18,4 @@ columns = {
         }
 
 if __name__ == '__main__':
-    Solution(url=CAPTCHA_DEMO_URL,file_path="csv/1.csv", columns=columns, begin_row=261, end_row=262).resolve()
+    Solution(url=CAPTCHA_DEMO_URL,file_path="csv/1.csv", columns=columns, begin_row=251, end_row=252).resolve()

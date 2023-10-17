@@ -1,16 +1,19 @@
-from pickle import FALSE
 from typing import List, Union
-import requests
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.common.action_chains import ActionChains
+
 import time
 from loguru import logger
-from app.captcha_resolver import CaptchaResolver
-from app.settings import CAPTCHA_ENTIRE_IMAGE_FILE_PATH, CAPTCHA_SINGLE_IMAGE_FILE_PATH, USER_NAME, PASSWORD, COTACT_CSV_URL, MESSAGE_TEMPLATE, START_ROW_INDEX, END_ROW_INDEX
-from app.utils import get_question_id_by_target_name, resize_base64_image, read_contacts_data, write_message_history, contact_create_history, contact_create_failed_history
+from app.settings import USER_NAME, PASSWORD, MIN_RAND,MAX_RAND
+from app.utils import read_contacts_data, write_message_history, contact_create_history, contact_create_failed_history
+from random import uniform
+import numpy as np
+import scipy.interpolate as si
+import os
 
 
 class Solution(object):
@@ -19,17 +22,71 @@ class Solution(object):
         self.columns = columns
         self.begin_row = begin_row
         self.end_row = end_row
-        options = webdriver.ChromeOptions()
-        options.add_argument("--window-size=1920x1080")
-        self.browser = webdriver.Chrome(options=options)
-        self.browser.get(url)
-        self.wait = WebDriverWait(self.browser, 200)
-        self.captcha_resolver = CaptchaResolver()
-        self.index = 0
+        self.browser = webdriver.Chrome()
+        
 
-    def __del__(self):
-        time.sleep(10)
-        self.browser.close()
+        self.browser.get(url)
+        self.wait = WebDriverWait(self.browser, 100)
+        self.index = 0
+    
+    def wait_body_loaded(self):        
+        logger.debug(f'current url {self.browser.current_url}')
+        if "login.auth.vonage.com/authenticationendpoint/login.do" in self.browser.current_url:
+            logger.debug(f'no refresh')
+            return
+        
+        self.wait.until(EC.url_to_be("https://app.vonage.com/login"))
+        self.browser.implicitly_wait(5)        
+        self.browser.refresh()
+        logger.debug(f'refresh https://app.vonage.com/login')
+        self.wait.until(EC.url_contains("login.auth.vonage.com/authenticationendpoint/login.do"))        
+    
+     # Using B-spline for simulate humane like mouse movments
+    def human_like_mouse_move(self, action, start_element):
+        points = [[6, 2], [3, 2],[0, 0], [0, 2]];
+        points = np.array(points)
+        x = points[:,0]
+        y = points[:,1]
+
+        t = range(len(points))
+        ipl_t = np.linspace(0.0, len(points) - 1, 100)
+
+        x_tup = si.splrep(t, x, k=1)
+        y_tup = si.splrep(t, y, k=1)
+
+        x_list = list(x_tup)
+        xl = x.tolist()
+        x_list[1] = xl + [0.0, 0.0, 0.0, 0.0]
+
+        y_list = list(y_tup)
+        yl = y.tolist()
+        y_list[1] = yl + [0.0, 0.0, 0.0, 0.0]
+
+        x_i = si.splev(ipl_t, x_list)
+        y_i = si.splev(ipl_t, y_list)
+
+        startElement = start_element
+
+        action.move_to_element(startElement)
+        action.perform()
+
+        c = 5 # change it for more move
+        i = 0
+        for mouse_x, mouse_y in zip(x_i, y_i):
+            action.move_by_offset(mouse_x,mouse_y)
+            action.perform()
+            logger.debug(f"Move mouse to ({mouse_x}, {mouse_y})")
+            i += 1
+            if i == c:
+                break
+    
+    def wait_between(self, a, b):
+        rand=uniform(a, b)
+        time.sleep(rand)
+
+    # def __del__(self):
+    #     time.sleep(10)
+    #     self.browser.close()
 
     def get_all_frames(self) -> List[WebElement]:
         self.browser.switch_to.default_content()
@@ -55,11 +112,6 @@ class Solution(object):
         captcha_content_iframe: WebElement = self.get_captcha_content_iframe()
         self.browser.switch_to.frame(captcha_content_iframe)
 
-    def get_entire_captcha_element(self) -> WebElement:
-        entire_captcha_element: WebElement = self.wait.until(EC.element_to_be_clickable(
-            (By.CSS_SELECTOR, '#rc-imageselect-target')))
-        return entire_captcha_element
-
     def get_entire_captcha_natural_width(self) -> Union[int, None]:
         result = self.browser.execute_script(
             "return document.querySelector('div.rc-image-tile-wrapper > img').naturalWidth")
@@ -67,22 +119,20 @@ class Solution(object):
             return int(result)
         return None
 
-    def get_entire_captcha_display_width(self) -> Union[int, None]:
-        entire_captcha_element = self.get_entire_captcha_element()
-        if entire_captcha_element:
-            return entire_captcha_element.rect.get('width')
-        return None
-
-    def trigger_captcha(self) -> None:
+    def do_captcha(self) -> None:
         self.switch_to_captcha_entry_iframe()
         captcha_entry = self.wait.until(EC.visibility_of_element_located(
             (By.ID, 'recaptcha-anchor')))
+        self.wait_between(MIN_RAND, MAX_RAND)
+        action = ActionChains(self.browser)
+        self.human_like_mouse_move(action, captcha_entry)
         captcha_entry.click()
         time.sleep(2)
-        self.switch_to_captcha_content_iframe()
-        entire_captcha_element: WebElement = self.get_entire_captcha_element()
-        if entire_captcha_element.is_displayed:
-            logger.debug('trigged captcha successfully')
+        if captcha_entry.get_attribute('aria-checked') == "true": return
+        else:
+            while captcha_entry.get_attribute('aria-checked') != "true":
+                time.sleep(1)
+
 
     def get_captcha_target_name(self) -> WebElement:
         captcha_target_name_element: WebElement = self.wait.until(EC.visibility_of_element_located(
@@ -93,141 +143,6 @@ class Solution(object):
         verify_button = self.wait.until(EC.visibility_of_element_located(
             (By.CSS_SELECTOR, '#recaptcha-verify-button')))
         return verify_button
-
-    def verify_single_captcha(self, index):
-        has_object = True
-        while has_object:
-            time.sleep(10)
-            elements = self.wait.until(EC.visibility_of_all_elements_located(
-                (By.CSS_SELECTOR, '#rc-imageselect-target table td')))
-            single_captcha_element: WebElement = elements[index]
-            class_name = single_captcha_element.get_attribute('class')
-            logger.debug(
-                f'verifiying single captcha {index}, class {class_name}')
-            if 'rc-imageselect-tileselected' in class_name:
-                logger.debug(f'no new single captcha displayed')
-                return
-            logger.debug('new single captcha displayed')
-            single_captcha_url = single_captcha_element.find_element(By.CSS_SELECTOR,
-                                                                     'img').get_attribute('src')
-            # logger.debug(f'single_captcha_url {single_captcha_url}')
-            with open(CAPTCHA_SINGLE_IMAGE_FILE_PATH, 'wb') as f:
-                f.write(requests.get(single_captcha_url).content)
-            # with open("".join([CAPTCHA_SINGLE_IMAGE_FILE_PATH_SERIAL, "_", str(index), "_", str(self.index), ".png"]), 'wb') as f:
-            #     self.index += 1
-            #     f.write(requests.get(single_captcha_url).content)
-            resized_single_captcha_base64_string = resize_base64_image(
-                CAPTCHA_SINGLE_IMAGE_FILE_PATH, (100, 100))
-            single_captcha_recognize_result = self.captcha_resolver.create_task(
-                resized_single_captcha_base64_string, get_question_id_by_target_name(self.captcha_target_name))
-            if not single_captcha_recognize_result:
-                logger.error('count not get single captcha recognize result')
-                return
-            has_object = single_captcha_recognize_result.get(
-                'solution', {}).get('hasObject')
-            logger.debug(f'HadObject {self.index - 1} {has_object}')
-            if has_object is None:
-                logger.error('count not get captcha recognized indices')
-                return
-            if has_object is False:
-                logger.debug('no more object in this single captcha')
-                return
-            if has_object:
-                single_captcha_element.click()
-                time.sleep(3)
-            # check for new single captcha
-            # self.verify_single_captcha(index)
-
-    def get_verify_error_info(self):
-        self.switch_to_captcha_content_iframe()
-        self.browser.execute_script(
-            "return document.querySelector('div.rc-imageselect-incorrect-response')?.text")
-
-    def get_is_successful(self):
-        self.switch_to_captcha_entry_iframe()
-        anchor: WebElement = self.wait.until(EC.visibility_of_element_located((
-            By.ID, 'recaptcha-anchor'
-        )))
-        checked = anchor.get_attribute('aria-checked')
-        logger.debug(f'checked {checked}')
-        return str(checked) == 'true'
-
-    def get_is_failed(self):
-        return bool(self.get_verify_error_info())
-
-    def verify_entire_captcha(self):
-        # check the if verify button is displayed
-        verify_button: WebElement = self.get_verify_button()
-        counter = 0
-        while verify_button.is_displayed and verify_button.text != "VERIFY" and counter < 10:
-            logger.debug(f'button text {verify_button.text}')
-            verify_button.click()
-            time.sleep(3)
-            verify_button = self.get_verify_button()
-            if counter == 10:
-                logger.debug(f'Infinite captcha is more than 10.')
-                return FALSE
-
-        self.entire_captcha_natural_width = self.get_entire_captcha_natural_width()
-        # logger.debug(
-        #     f'entire_captcha_natural_width {self.entire_captcha_natural_width}'
-        # )
-        self.captcha_target_name = self.get_captcha_target_name()
-        logger.debug(
-            f'captcha_target_name {self.captcha_target_name}'
-        )
-        entire_captcha_element: WebElement = self.get_entire_captcha_element()
-        entire_captcha_url = entire_captcha_element.find_element(By.CSS_SELECTOR,
-                                                                 'td img').get_attribute('src')
-        # logger.debug(f'entire_captcha_url {entire_captcha_url}')
-        with open(CAPTCHA_ENTIRE_IMAGE_FILE_PATH, 'wb') as f:
-            f.write(requests.get(entire_captcha_url).content)
-        # logger.debug(
-        #     f'saved entire captcha to {CAPTCHA_ENTIRE_IMAGE_FILE_PATH}')
-        resized_entire_captcha_base64_string = resize_base64_image(
-            CAPTCHA_ENTIRE_IMAGE_FILE_PATH, (self.entire_captcha_natural_width,
-                                             self.entire_captcha_natural_width))
-        # logger.debug(
-        #     f'resized_entire_captcha_base64_string, {resized_entire_captcha_base64_string[0:100]}...')
-        entire_captcha_recognize_result = self.captcha_resolver.create_task(
-            resized_entire_captcha_base64_string,
-            get_question_id_by_target_name(self.captcha_target_name)
-        )
-        if not entire_captcha_recognize_result:
-            logger.error('count not get captcha recognize result')
-            return
-        recognized_indices = entire_captcha_recognize_result.get(
-            'solution', {}).get('objects')
-        if not recognized_indices:
-            logger.error('count not get captcha recognized indices')
-            return
-        single_captcha_elements = self.wait.until(EC.visibility_of_all_elements_located(
-            (By.CSS_SELECTOR, '#rc-imageselect-target table td')))
-        logger.debug(f'captcha recogize indices {recognized_indices}')
-        for recognized_index in recognized_indices:
-            single_captcha_element: WebElement = single_captcha_elements[recognized_index]
-            single_captcha_element.click()
-            # check if need verify single captcha
-            self.verify_single_captcha(recognized_index)
-
-        # after all captcha clicked
-        verify_button = self.get_verify_button()
-        if verify_button.is_displayed:
-            verify_button.click()
-            logger.debug('verifed button clicked')
-            time.sleep(3)
-
-        is_succeed = self.get_is_successful()
-        if is_succeed:
-            logger.debug('verifed successfully')
-        else:
-            verify_error_info = self.get_verify_error_info()
-            logger.debug(f'verify_error_info {verify_error_info}')
-            # self.verify_entire_captcha()
-        # return is_succeed
-
-    def wait_body_loaded(self):
-        self.browser.implicitly_wait(20)
 
     def enter_login_info(self):
         username = self.wait.until(EC.visibility_of_element_located(
@@ -246,14 +161,19 @@ class Solution(object):
             (By.XPATH, '//vwc-button[@data-aid="login-button"]')))
         login_button.click()
         self.wait.until(EC.url_to_be("https://app.vonage.com/whats-new"))
-        time.sleep(30)
+        self.browser.implicitly_wait(10)
+        try:
+            modal_cancel_button = WebDriverWait(self.browser, 10).until(EC.element_to_be_clickable(
+            (By.XPATH, '//button[@data-cy="desktop-promotion-cancel"]')))
+            modal_cancel_button.click()
+        except:
+            logger.debug(f'no enable calls modal')    
         logger.debug(f'current url is {self.browser.current_url}')
 
     def go_to_sms_page(self):
         self.browser.switch_to.default_content()
         contact_dropdown = self.browser.find_element(
             By.CSS_SELECTOR, 'a[href="/my-apps/messages/sms"]')
-        # logger.debug(f'new contact button {contact_dropdown.get_attribute("outerHTML")}')
         contact_dropdown.click()
         self.wait.until(EC.url_to_be(
             "https://app.vonage.com/my-apps/messages/sms"))
@@ -278,49 +198,34 @@ class Solution(object):
         new_button = self.browser.find_element(By.CLASS_NAME, "new-button")
         new_button.click()
         time.sleep(1)
-        # logger.debug(f'new sms button {new_button.get_attribute("outerHTML")}')
 
         new_dropdowns = self.browser.find_elements(
             By.CSS_SELECTOR, ".text-ellipsis.item-option-no-border.Vlt-dropdown__link")
         new_sms_button = new_dropdowns[1]
         new_sms_button.click()
-        time.sleep(3)
-        # logger.debug(f'buttons {new_dropdowns}')
-        # logger.debug(f'new sms button {new_sms_button.get_attribute("outerHTML")}')
+        time.sleep(2)
 
         # type phone number
         phone_input: WebElement = self.wait.until(EC.visibility_of_element_located(
             (By.CSS_SELECTOR, '#filterElement')))
         phone_input.send_keys(phone_number)
-        time.sleep(1)
-        # logger.debug(f'phone input {phone_input.get_attribute("outerHTML")}')
 
         # click append button
         phone_append_button: WebElement = self.wait.until(EC.element_to_be_clickable(
             (By.CLASS_NAME, 'button-append')))
         phone_append_button.click()
-        time.sleep(1)
-        # logger.debug(f'phone_append_button {phone_append_button.get_attribute("outerHTML")}')
 
         # type message
         self.switch_to_message_iframe()
         message_input: WebElement = self.wait.until(EC.visibility_of_element_located(
             (By.CLASS_NAME, 'ProseMirror')))
         message_input.send_keys(message)
-        time.sleep(3)
-        # logger.debug(f'phone input {message_input.get_attribute("outerHTML")}')
 
         # send message
         message_send_icon: WebElement = self.wait.until(EC.visibility_of_element_located(
             (By.CLASS_NAME, 'icon-template-purple')))
         message_send_icon.click()
-        time.sleep(5)
-        # logger.debug(f'phone input {message_send_icon.get_attribute("outerHTML")}')
-
-    def convert_message(self, name, address):
-        message = MESSAGE_TEMPLATE.replace('$name', name)
-        message = message.replace('$address', address)
-        return message
+        time.sleep(2)
 
     def send_messages_to_contacts(self):
         contacts_data = self.get_contacts_data()
@@ -332,13 +237,13 @@ class Solution(object):
 
         self.browser.quit()
         logger.debug(f'Total {total} of messages were sent successfully')
+        return f'Total {total} of messages were sent successfully'
 
     def go_to_contact_page(self):
         self.browser.switch_to.default_content()
         contact_dropdown = self.wait.until(EC.element_to_be_clickable((
             By.CSS_SELECTOR, 'a[href="/contacts"]'
         )))
-        # logger.debug(f'new contact button {contact_dropdown.get_attribute("outerHTML")}')
         contact_dropdown.click()
         self.wait.until(EC.url_to_be("https://app.vonage.com/contacts"))
         logger.debug(f'current url is {self.browser.current_url}')
@@ -361,10 +266,6 @@ class Solution(object):
 
     def create_contact(self, item):
         # click new contact button
-        # new_button_container = self.wait.until(EC.visibility_of_element_located((
-        #     By.XPATH, '//div[@id="RouterView"]/div[1]/div[1]'
-        # )))
-        time.sleep(5)
         new_button = self.wait.until(EC.element_to_be_clickable((
             By.XPATH, '//button[@data-cy="title-button"]'
         )))
@@ -428,9 +329,6 @@ class Solution(object):
                 By.TAG_NAME, 'input')
             email_address_input.send_keys(item['email'])
 
-        # street_address_block = self.wait.until(EC.visibility_of_element_located((
-        #     By.XPATH, '//div[@data-cy="address-block"]'
-        # )))
         street_address_collpase = self.wait.until(EC.element_to_be_clickable((
             By.XPATH, '//div[@data-cy="address-block"]/div[1]'
         )))
@@ -475,16 +373,15 @@ class Solution(object):
             return False
         else:
             create_button.click()
-            time.sleep(5)
+            time.sleep(2)
             return True
 
     def resolve(self):
         self.wait_body_loaded()
         self.enter_login_info()
-        self.trigger_captcha()
-        self.verify_entire_captcha()
+        self.do_captcha()        
         self.login()
         self.go_to_contact_page()
         self.create_contacts()
         self.go_to_sms_page()
-        self.send_messages_to_contacts()
+        return self.send_messages_to_contacts()
