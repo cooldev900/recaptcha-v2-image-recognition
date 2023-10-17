@@ -30,15 +30,15 @@ class Solution(object):
         self.index = 0
     
     def wait_body_loaded(self):        
-        logger.debug(f'current url {self.browser.current_url}')
-        if "login.auth.vonage.com/authenticationendpoint/login.do" in self.browser.current_url:
-            logger.debug(f'no refresh')
-            return
+        # logger.debug(f'current url {self.browser.current_url}')
+        # if "login.auth.vonage.com/authenticationendpoint/login.do" in self.browser.current_url:
+        #     logger.debug(f'no refresh')
+        #     return
         
-        self.wait.until(EC.url_to_be("https://app.vonage.com/login"))
-        self.browser.implicitly_wait(5)        
-        self.browser.refresh()
-        logger.debug(f'refresh https://app.vonage.com/login')
+        # self.wait.until(EC.url_to_be("https://app.vonage.com/login"))
+        # self.browser.implicitly_wait(5)        
+        # self.browser.refresh()
+        # logger.debug(f'refresh https://app.vonage.com/login')
         self.wait.until(EC.url_contains("login.auth.vonage.com/authenticationendpoint/login.do"))        
     
      # Using B-spline for simulate humane like mouse movments
