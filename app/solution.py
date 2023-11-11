@@ -231,8 +231,12 @@ class Solution(object):
         contacts_data = self.get_contacts_data()
         total = 0
         for index, item in enumerate(contacts_data, start=1):
-            self.send_sms(item['phone_number'], item['message'])
-            write_message_history(item['phone_number'], item['message'])
+            message = item.get('message', '').replace("\r", "").replace("\n", "")
+            phone_number = item.get('phone_number', '')
+            if not message or not phone_number:
+                continue
+            self.send_sms(phone_number, message)
+            write_message_history(phone_number, message)
             total += 1
 
         self.browser.quit()
